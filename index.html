@@ -2,87 +2,120 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Ujian Online - Peserta</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aplikasi Ujian Online</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
-  <script type="module" src="firebaseConfig.js"></script>
-  <script type="module" src="student.js" defer></script>
+  <style>
+    .card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .btn-primary {
+      background: #6366f1;
+      color: white;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover {
+      background: #4f46e5;
+    }
+    .input-field {
+      border: 1px solid #d1d5db;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+    }
+  </style>
 </head>
-<body class="bg-gradient-to-b from-indigo-50 to-white min-h-screen flex items-center justify-center">
 
-  <div class="w-full max-w-3xl p-6">
+<body class="bg-gradient-to-b from-indigo-50 to-white min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-4xl p-6">
+
+    <!-- LOGIN SECTION -->
     <div id="login-sec" class="card max-w-md mx-auto text-center">
-      <h2 class="text-xl font-semibold text-indigo-700 mb-3">Login Peserta</h2>
-      <input id="stu-email" class="input-field w-full mb-2" placeholder="Email" />
-      <input id="stu-pass" class="input-field w-full mb-3" placeholder="Password" type="password" />
-      <button id="stu-login" class="btn-primary w-full py-2 rounded">Login</button>
+      <h2 class="text-2xl font-semibold text-indigo-700 mb-3">Login</h2>
+      <input id="email" class="input-field w-full mb-2" placeholder="Email" type="email" />
+      <input id="password" class="input-field w-full mb-4" placeholder="Password" type="password" />
+      <button id="loginBtn" class="btn-primary w-full py-2 rounded">Masuk</button>
     </div>
 
-    <div id="exam-sec" class="hidden max-w-3xl mx-auto">
+    <!-- ADMIN DASHBOARD -->
+    <div id="admin-sec" class="hidden">
+      <div class="card mb-6">
+        <h2 class="text-xl font-semibold text-indigo-700 mb-4">📋 Dashboard Admin</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <input id="q-text" class="input-field w-full mb-2" placeholder="Tulis pertanyaan..." />
+            <div id="opts-container" class="space-y-2 mb-3">
+              <input class="input-field w-full option" placeholder="Opsi A" />
+              <input class="input-field w-full option" placeholder="Opsi B" />
+              <input class="input-field w-full option" placeholder="Opsi C" />
+              <input class="input-field w-full option" placeholder="Opsi D" />
+            </div>
+
+            <label class="block text-sm font-medium text-gray-700 mb-1">Jawaban Benar:</label>
+            <select id="correct-index" class="input-field w-full mb-3">
+              <option value="0">Opsi A</option>
+              <option value="1">Opsi B</option>
+              <option value="2">Opsi C</option>
+              <option value="3">Opsi D</option>
+            </select>
+            <button id="add-question" class="btn-primary px-4 py-2 rounded">Tambah Soal</button>
+          </div>
+
+          <div class="card bg-indigo-50">
+            <h3 class="font-semibold text-indigo-700 mb-2">Daftar Soal</h3>
+            <ul id="question-list" class="space-y-1 text-sm text-gray-700"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STUDENT SECTION -->
+    <div id="student-sec" class="hidden">
       <div class="card mb-4">
         <div class="flex justify-between items-center">
-          <h3 id="exam-title" class="text-lg font-semibold text-indigo-700">Ujian</h3>
-          <div id="stu-info" class="text-sm text-gray-600"></div>
+          <h3 class="text-lg font-semibold text-indigo-700">Ujian Online</h3>
+          <div id="timer" class="text-gray-600 font-medium"></div>
         </div>
-        <p id="exam-meta" class="text-sm text-gray-500 mt-2"></p>
       </div>
 
       <div id="question-card" class="card">
-        <div id="q-body"></div>
-        <div id="q-opts" class="mt-4 space-y-2"></div>
-        <div class="flex justify-between mt-4">
-          <div id="timer" class="text-gray-600 font-medium"></div>
+        <div id="q-body" class="text-lg font-medium text-gray-700 mb-3"></div>
+        <div id="q-opts" class="space-y-2"></div>
+
+        <div class="flex justify-between items-center mt-5">
           <div class="flex gap-2">
             <button id="prev-btn" class="px-3 py-1 border rounded">Sebelumnya</button>
             <button id="next-btn" class="btn-primary px-4 py-1 rounded">Berikutnya</button>
-            <button id="submit-btn" class="px-3 py-1 border rounded bg-green-500 text-white">Selesai</button>
           </div>
+          <button id="submit-btn" class="px-3 py-1 border rounded bg-green-500 text-white">Selesai</button>
         </div>
       </div>
 
       <div id="result-card" class="card hidden mt-4">
-        <h3 class="text-lg font-semibold text-indigo-700">Hasil</h3>
+        <h3 class="text-lg font-semibold text-indigo-700">Hasil Ujian</h3>
         <p id="result-text" class="mt-3 text-gray-700"></p>
       </div>
     </div>
   </div>
 
-  <h2>Login Siswa</h2>
-<input id="email" placeholder="Email" />
-<input id="password" type="password" placeholder="Password" />
-<button id="loginBtn">Masuk</button>
+  <!-- ================= FIREBASE LOGIC ================= -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    // 🔧 Ganti ini dengan Firebase project kamu
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID"
+    };
 
-const firebaseConfig = {
-  apiKey: "...",
-  authDomain: "...",
-  projectId: "...",
-};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+    const ADMIN_UID = "ZcJUyzVhwvUoVemfx84oLs2CdyI2"; // UID admin kamu
 
-document.getElementById("loginBtn").onclick = () => {
-  const email = emailInput.value;
-  const password = passwordInput.value;
-
-  signInWithEmailAndPassword(auth, email, password)
-    .then(async (userCred) => {
-      alert("Login berhasil!");
-      // Ambil soal dari Firestore
-      const qSnap = await getDocs(collection(db, "questions"));
-      qSnap.forEach((doc) => console.log(doc.data()));
-    })
-    .catch((err) => alert("Login gagal: " + err.message));
-};
-</script>
-
-
-</body>
-</html>
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
