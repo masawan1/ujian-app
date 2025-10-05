@@ -2,120 +2,138 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Aplikasi Ujian Online</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
-
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ujian Online</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
-    .card {
-      background: white;
-      padding: 1.5rem;
-      border-radius: 1rem;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    .btn-primary {
-      background: #6366f1;
-      color: white;
-      transition: all 0.2s;
-    }
-    .btn-primary:hover {
-      background: #4f46e5;
-    }
-    .input-field {
-      border: 1px solid #d1d5db;
-      padding: 0.5rem;
-      border-radius: 0.5rem;
-    }
+    .card { background: white; padding: 1.5rem; border-radius: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .btn-primary { background: #6366f1; color: white; transition: 0.2s; }
+    .btn-primary:hover { background: #4f46e5; }
+    .input-field { border: 1px solid #d1d5db; padding: 0.5rem; border-radius: 0.5rem; }
   </style>
 </head>
 
 <body class="bg-gradient-to-b from-indigo-50 to-white min-h-screen flex items-center justify-center">
-  <div class="w-full max-w-4xl p-6">
-
-    <!-- LOGIN SECTION -->
+  <div class="w-full max-w-3xl p-6">
+    <!-- LOGIN -->
     <div id="login-sec" class="card max-w-md mx-auto text-center">
-      <h2 class="text-2xl font-semibold text-indigo-700 mb-3">Login</h2>
+      <h2 class="text-2xl font-semibold text-indigo-700 mb-3">Login Akun</h2>
       <input id="email" class="input-field w-full mb-2" placeholder="Email" type="email" />
       <input id="password" class="input-field w-full mb-4" placeholder="Password" type="password" />
       <button id="loginBtn" class="btn-primary w-full py-2 rounded">Masuk</button>
     </div>
 
-    <!-- ADMIN DASHBOARD -->
-    <div id="admin-sec" class="hidden">
-      <div class="card mb-6">
-        <h2 class="text-xl font-semibold text-indigo-700 mb-4">📋 Dashboard Admin</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <input id="q-text" class="input-field w-full mb-2" placeholder="Tulis pertanyaan..." />
-            <div id="opts-container" class="space-y-2 mb-3">
-              <input class="input-field w-full option" placeholder="Opsi A" />
-              <input class="input-field w-full option" placeholder="Opsi B" />
-              <input class="input-field w-full option" placeholder="Opsi C" />
-              <input class="input-field w-full option" placeholder="Opsi D" />
-            </div>
-
-            <label class="block text-sm font-medium text-gray-700 mb-1">Jawaban Benar:</label>
-            <select id="correct-index" class="input-field w-full mb-3">
-              <option value="0">Opsi A</option>
-              <option value="1">Opsi B</option>
-              <option value="2">Opsi C</option>
-              <option value="3">Opsi D</option>
-            </select>
-            <button id="add-question" class="btn-primary px-4 py-2 rounded">Tambah Soal</button>
-          </div>
-
-          <div class="card bg-indigo-50">
-            <h3 class="font-semibold text-indigo-700 mb-2">Daftar Soal</h3>
-            <ul id="question-list" class="space-y-1 text-sm text-gray-700"></ul>
-          </div>
-        </div>
+    <!-- ADMIN SECTION -->
+    <div id="admin-sec" class="hidden card mt-4">
+      <h2 class="text-xl font-semibold text-indigo-700 mb-4">Dashboard Admin</h2>
+      <input id="q-text" class="input-field w-full mb-2" placeholder="Tulis pertanyaan..." />
+      <div id="opts-container" class="space-y-2 mb-3">
+        <input class="input-field w-full option" placeholder="Opsi A" />
+        <input class="input-field w-full option" placeholder="Opsi B" />
+        <input class="input-field w-full option" placeholder="Opsi C" />
+        <input class="input-field w-full option" placeholder="Opsi D" />
       </div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Jawaban Benar:</label>
+      <select id="correct-index" class="input-field w-full mb-3">
+        <option value="0">Opsi A</option>
+        <option value="1">Opsi B</option>
+        <option value="2">Opsi C</option>
+        <option value="3">Opsi D</option>
+      </select>
+      <button id="add-question" class="btn-primary px-4 py-2 rounded">Tambah Soal</button>
+      <ul id="question-list" class="mt-4 text-sm text-gray-700 list-disc pl-5"></ul>
     </div>
 
     <!-- STUDENT SECTION -->
-    <div id="student-sec" class="hidden">
-      <div class="card mb-4">
-        <div class="flex justify-between items-center">
-          <h3 class="text-lg font-semibold text-indigo-700">Ujian Online</h3>
-          <div id="timer" class="text-gray-600 font-medium"></div>
-        </div>
-      </div>
-
-      <div id="question-card" class="card">
-        <div id="q-body" class="text-lg font-medium text-gray-700 mb-3"></div>
-        <div id="q-opts" class="space-y-2"></div>
-
-        <div class="flex justify-between items-center mt-5">
-          <div class="flex gap-2">
-            <button id="prev-btn" class="px-3 py-1 border rounded">Sebelumnya</button>
-            <button id="next-btn" class="btn-primary px-4 py-1 rounded">Berikutnya</button>
-          </div>
-          <button id="submit-btn" class="px-3 py-1 border rounded bg-green-500 text-white">Selesai</button>
-        </div>
-      </div>
-
-      <div id="result-card" class="card hidden mt-4">
-        <h3 class="text-lg font-semibold text-indigo-700">Hasil Ujian</h3>
-        <p id="result-text" class="mt-3 text-gray-700"></p>
-      </div>
+    <div id="student-sec" class="hidden card mt-4">
+      <h2 class="text-xl font-semibold text-indigo-700 mb-3">Ujian Online</h2>
+      <div id="q-body" class="mb-3"></div>
+      <div id="q-opts" class="space-y-2"></div>
     </div>
   </div>
 
-  <!-- ================= FIREBASE LOGIC ================= -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // 🔧 Ganti ini dengan Firebase project kamu
+    // GANTI DENGAN KONFIGURASI FIREBASE KAMU
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID"
+      apiKey: "ISI_APIKEY_KAMU",
+      authDomain: "ISI_AUTHDOMAIN_KAMU",
+      projectId: "ISI_PROJECTID_KAMU"
     };
 
-    const ADMIN_UID = "ZcJUyzVhwvUoVemfx84oLs2CdyI2"; // UID admin kamu
+    const ADMIN_UID = "ZcJUyzVhwvUoVemfx84oLs2CdyI2"; // GANTI DENGAN UID ADMIN KAMU
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+
+    const loginSec = document.getElementById("login-sec");
+    const adminSec = document.getElementById("admin-sec");
+    const studentSec = document.getElementById("student-sec");
+
+    // === LOGIN HANDLER ===
+    document.getElementById("loginBtn").onclick = async () => {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      try {
+        const userCred = await signInWithEmailAndPassword(auth, email, password);
+        const uid = userCred.user.uid;
+        console.log("Login sukses:", uid);
+
+        loginSec.classList.add("hidden");
+        if (uid === ADMIN_UID) {
+          adminSec.classList.remove("hidden");
+          loadQuestions();
+        } else {
+          studentSec.classList.remove("hidden");
+          loadStudentQuestions();
+        }
+      } catch (err) {
+        alert("Login gagal: " + err.message);
+      }
+    };
+
+    // === ADMIN: TAMBAH SOAL ===
+    async function loadQuestions() {
+      const qList = document.getElementById("question-list");
+      qList.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "questions"));
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        qList.innerHTML += `<li>${data.text}</li>`;
+      });
+
+      document.getElementById("add-question").onclick = async () => {
+        const text = document.getElementById("q-text").value;
+        const options = Array.from(document.querySelectorAll(".option")).map(o => o.value);
+        const correctIndex = parseInt(document.getElementById("correct-index").value);
+
+        if (!text || options.some(o => !o)) return alert("Isi semua field!");
+        await addDoc(collection(db, "questions"), { text, options, correctIndex });
+        alert("Soal berhasil ditambahkan!");
+        loadQuestions();
+      };
+    }
+
+    // === SISWA: BACA SOAL ===
+    async function loadStudentQuestions() {
+      const qBody = document.getElementById("q-body");
+      const qOpts = document.getElementById("q-opts");
+      const snapshot = await getDocs(collection(db, "questions"));
+      qBody.innerHTML = "";
+      qOpts.innerHTML = "";
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        qBody.innerHTML += `<p class='font-semibold mb-2'>${data.text}</p>`;
+        data.options.forEach(opt => {
+          qOpts.innerHTML += `<div><input type='radio' name='opt'> ${opt}</div>`;
+        });
+      });
+    }
+  </script>
+</body>
+</html>
