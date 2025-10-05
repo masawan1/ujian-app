@@ -1,34 +1,53 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <title>Aplikasi Ujian Online</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ujian Online - Peserta</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
-  <!-- Firebase -->
   <script type="module" src="firebaseConfig.js"></script>
-  <script type="module" src="script.js" defer></script>
+  <script type="module" src="student.js" defer></script>
 </head>
-<body>
-  <h1>Ujian Online</h1>
+<body class="bg-gradient-to-b from-indigo-50 to-white min-h-screen flex items-center justify-center">
 
-  <div id="login-section">
-    <h2>Login</h2>
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Password" />
-    <button id="loginBtn">Login</button>
+  <div class="w-full max-w-3xl p-6">
+    <div id="login-sec" class="card max-w-md mx-auto text-center">
+      <h2 class="text-xl font-semibold text-indigo-700 mb-3">Login Peserta</h2>
+      <input id="stu-email" class="input-field w-full mb-2" placeholder="Email" />
+      <input id="stu-pass" class="input-field w-full mb-3" placeholder="Password" type="password" />
+      <button id="stu-login" class="btn-primary w-full py-2 rounded">Login</button>
+    </div>
+
+    <div id="exam-sec" class="hidden max-w-3xl mx-auto">
+      <div class="card mb-4">
+        <div class="flex justify-between items-center">
+          <h3 id="exam-title" class="text-lg font-semibold text-indigo-700">Ujian</h3>
+          <div id="stu-info" class="text-sm text-gray-600"></div>
+        </div>
+        <p id="exam-meta" class="text-sm text-gray-500 mt-2"></p>
+      </div>
+
+      <div id="question-card" class="card">
+        <div id="q-body"></div>
+        <div id="q-opts" class="mt-4 space-y-2"></div>
+        <div class="flex justify-between mt-4">
+          <div id="timer" class="text-gray-600 font-medium"></div>
+          <div class="flex gap-2">
+            <button id="prev-btn" class="px-3 py-1 border rounded">Sebelumnya</button>
+            <button id="next-btn" class="btn-primary px-4 py-1 rounded">Berikutnya</button>
+            <button id="submit-btn" class="px-3 py-1 border rounded bg-green-500 text-white">Selesai</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="result-card" class="card hidden mt-4">
+        <h3 class="text-lg font-semibold text-indigo-700">Hasil</h3>
+        <p id="result-text" class="mt-3 text-gray-700"></p>
+      </div>
+    </div>
   </div>
 
-  <div id="exam-section" class="hidden">
-    <h2 id="questionText"></h2>
-    <div id="options"></div>
-    <button id="nextBtn">Soal Berikutnya</button>
-    <div id="timer"></div>
-  </div>
-
-  <div id="result-section" class="hidden">
-    <h2>Hasil Ujian</h2>
-    <p id="score"></p>
-  </div>
 </body>
 </html>
