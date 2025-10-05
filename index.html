@@ -10,6 +10,7 @@
     .btn-primary { background: #6366f1; color: white; transition: 0.2s; }
     .btn-primary:hover { background: #4f46e5; }
     .input-field { border: 1px solid #d1d5db; padding: 0.5rem; border-radius: 0.5rem; }
+    .disabled { opacity: 0.5; pointer-events: none; }
   </style>
 </head>
 
@@ -22,7 +23,7 @@
       <input id="email" class="input-field w-full mb-2" placeholder="Email" type="email" />
       <input id="password" class="input-field w-full mb-4" placeholder="Password" type="password" />
       <button id="loginBtn" class="btn-primary w-full py-2 rounded mb-2">Masuk</button>
-      <p class="text-sm text-gray-600">Belum punya akun?
+      <p class="text-sm text-gray-600">Belum punya akun? 
         <span id="showSignUp" class="text-indigo-600 hover:underline cursor-pointer">Daftar</span>
       </p>
 
@@ -39,34 +40,21 @@
     <div id="admin-sec" class="hidden card mt-4">
       <h2 class="text-xl font-semibold text-indigo-700 mb-4">Dashboard Admin</h2>
       <input id="q-text" class="input-field w-full mb-2" placeholder="Tulis pertanyaan..." />
-
-      <label class="block text-sm font-medium text-gray-700 mb-1">Tipe Soal:</label>
-      <select id="q-type" class="input-field w-full mb-3">
-        <option value="truefalse">Benar / Salah</option>
-        <option value="single">Pilihan Tunggal</option>
-        <option value="multiple">Pilihan Ganda</option>
-      </select>
-
       <div id="opts-container" class="space-y-2 mb-3">
-        <div class="flex gap-2">
-          <input class="input-field flex-1 option" placeholder="Opsi A" />
-          <label class="flex items-center gap-1"><input type="checkbox" class="multi-correct" value="0" /> A</label>
-        </div>
-        <div class="flex gap-2">
-          <input class="input-field flex-1 option" placeholder="Opsi B" />
-          <label class="flex items-center gap-1"><input type="checkbox" class="multi-correct" value="1" /> B</label>
-        </div>
-        <div class="flex gap-2">
-          <input class="input-field flex-1 option" placeholder="Opsi C" />
-          <label class="flex items-center gap-1"><input type="checkbox" class="multi-correct" value="2" /> C</label>
-        </div>
-        <div class="flex gap-2">
-          <input class="input-field flex-1 option" placeholder="Opsi D" />
-          <label class="flex items-center gap-1"><input type="checkbox" class="multi-correct" value="3" /> D</label>
-        </div>
+        <input class="input-field w-full option" placeholder="Opsi A" />
+        <input class="input-field w-full option" placeholder="Opsi B" />
+        <input class="input-field w-full option" placeholder="Opsi C" />
+        <input class="input-field w-full option" placeholder="Opsi D" />
       </div>
 
-      <p class="text-sm text-gray-600 mb-3">Centang satu atau lebih jawaban benar.</p>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Jawaban Benar (bisa lebih dari satu):</label>
+      <div id="multi-correct" class="flex gap-3 mb-4">
+        <label><input type="checkbox" value="0" /> A</label>
+        <label><input type="checkbox" value="1" /> B</label>
+        <label><input type="checkbox" value="2" /> C</label>
+        <label><input type="checkbox" value="3" /> D</label>
+      </div>
+
       <button id="add-question" class="btn-primary px-4 py-2 rounded w-full mb-3">Tambah Soal</button>
       <ul id="question-list" class="mt-4 text-sm text-gray-700 list-disc pl-5"></ul>
     </div>
@@ -98,57 +86,65 @@
     import { auth, db } from "./firebaseConfig.js";
     import {
       signInWithEmailAndPassword,
-      createUserWithEmailAndPassword
+      createUserWithEmailAndPassword,
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
     import {
-      collection, addDoc, getDocs, setDoc, doc, serverTimestamp
+      collection, addDoc, getDocs, setDoc, doc,
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2";
+    const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2"; 
 
     const loginSec = document.getElementById("login-sec");
     const adminSec = document.getElementById("admin-sec");
     const studentSec = document.getElementById("student-sec");
     const msg = document.getElementById("msg");
-    const qList = document.getElementById("question-list");
     const timerEl = document.getElementById("timer");
 
-    let questions = [], answers = {}, currentIndex = 0, timer = 600, countdown;
-    let currentUserUid = null, currentUserEmail = null;
+    let questions = [], currentIndex = 0, answers = {}, timer = 600, countdown;
 
-    // Toggle signup
+    // Prevent Browsing (Anti-Cheat)
+    let warningCount = 0;
+    window.addEventListener("blur", () => {
+      warningCount++;
+      alert(`⚠️ Peringatan ${warningCount}: Jangan keluar dari layar ujian!`);
+      if (warningCount >= 3) {
+        alert("Ujian otomatis berakhir karena Anda keluar layar terlalu sering.");
+        location.reload();
+      }
+    });
+
+    // SIGN UP
     document.getElementById("showSignUp").onclick = () =>
       document.getElementById("signupBox").classList.toggle("hidden");
 
-    // Sign up
     document.getElementById("signUpBtn").onclick = async () => {
-      const name = document.getElementById("nameSignUp").value.trim();
-      const email = document.getElementById("emailSignUp").value.trim();
-      const password = document.getElementById("passwordSignUp").value.trim();
-      if (!name || !email || !password) return msg.textContent = "Lengkapi semua data!";
+      const name = document.getElementById("nameSignUp").value;
+      const email = document.getElementById("emailSignUp").value;
+      const password = document.getElementById("passwordSignUp").value;
+      if (!name || !email || !password)
+        return (msg.textContent = "Lengkapi semua data!");
       try {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, "students", cred.user.uid), { name, email, createdAt: serverTimestamp() });
-        msg.textContent = "Pendaftaran berhasil! Silakan login.";
+        await setDoc(doc(db, "students", cred.user.uid), { name, email });
+        msg.textContent = "Pendaftaran berhasil, silakan login.";
+        msg.classList.remove("text-red-500");
         msg.classList.add("text-green-600");
       } catch (err) {
         msg.textContent = "Gagal daftar: " + err.message;
       }
     };
 
-    // Login
+    // LOGIN
     document.getElementById("loginBtn").onclick = async () => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
       try {
         const userCred = await signInWithEmailAndPassword(auth, email, password);
         const uid = userCred.user.uid;
-        currentUserUid = uid;
-        currentUserEmail = email;
         loginSec.classList.add("hidden");
         if (uid === ADMIN_UID) {
           adminSec.classList.remove("hidden");
-          loadQuestionsAdmin();
+          loadQuestions();
         } else {
           studentSec.classList.remove("hidden");
           startExam(uid, email);
@@ -158,108 +154,97 @@
       }
     };
 
-    // Admin: Tambah soal
-    async function loadQuestionsAdmin() {
+    // ADMIN
+    async function loadQuestions() {
+      const qList = document.getElementById("question-list");
       qList.innerHTML = "";
-      const snap = await getDocs(collection(db, "questions"));
-      snap.forEach(d => {
-        const q = d.data();
-        const corr = (q.correctIndices || []).map(i => String.fromCharCode(65 + i)).join(", ");
-        qList.innerHTML += `<li>${q.text} (${q.type}) ${corr ? "Benar: " + corr : ""}</li>`;
+      const snapshot = await getDocs(collection(db, "questions"));
+      snapshot.forEach((docSnap) => {
+        const q = docSnap.data();
+        qList.innerHTML += `<li>${q.text}</li>`;
       });
 
       document.getElementById("add-question").onclick = async () => {
-        const text = document.getElementById("q-text").value.trim();
-        const type = document.getElementById("q-type").value;
-        let options = Array.from(document.querySelectorAll(".option")).map(o => o.value.trim());
-        let correctIndices = Array.from(document.querySelectorAll(".multi-correct:checked")).map(c => parseInt(c.value));
-        if (type === "truefalse") options = ["Benar", "Salah"];
-        if (!text || options.some(o => !o) || correctIndices.length === 0) return alert("Lengkapi semua field!");
-
-        await addDoc(collection(db, "questions"), { text, type, options, correctIndices, createdAt: serverTimestamp() });
-        alert("Soal ditambahkan!");
-        loadQuestionsAdmin();
+        const text = document.getElementById("q-text").value;
+        const options = Array.from(document.querySelectorAll(".option")).map((o) => o.value);
+        const correctIndices = Array.from(document.querySelectorAll("#multi-correct input:checked")).map(i => parseInt(i.value));
+        if (!text || options.some((o) => !o) || correctIndices.length === 0)
+          return alert("Lengkapi semua field dan pilih jawaban benar!");
+        await addDoc(collection(db, "questions"), { text, options, correctIndices });
+        alert("Soal berhasil ditambahkan!");
+        loadQuestions();
       };
     }
 
-    // Student: Ujian
+    // SISWA
     async function startExam(uid, email) {
-      const snap = await getDocs(collection(db, "questions"));
-      questions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const snapshot = await getDocs(collection(db, "questions"));
+      questions = snapshot.docs.map((d) => d.data());
       if (!questions.length) {
-        document.getElementById("q-body").innerHTML = "<p>Belum ada soal.</p>";
+        document.getElementById("q-body").innerHTML = "<p class='text-red-500'>Belum ada soal.</p>";
         return;
       }
-      currentIndex = 0;
-      renderQuestion();
+      // Randomize question order
+      questions = questions.sort(() => Math.random() - 0.5);
 
-      if (countdown) clearInterval(countdown);
+      showQuestion();
       countdown = setInterval(() => {
         timer--;
         const m = Math.floor(timer / 60), s = timer % 60;
         timerEl.textContent = `${m}:${s.toString().padStart(2, "0")}`;
-        if (timer <= 0) finishExam(uid, email);
+        if (timer <= 0) {
+          clearInterval(countdown);
+          finishExam(uid, email);
+        }
       }, 1000);
 
       document.getElementById("next-btn").onclick = () => {
-        if (currentIndex < questions.length - 1) { currentIndex++; renderQuestion(); }
+        if (currentIndex < questions.length - 1) { currentIndex++; showQuestion(); }
       };
       document.getElementById("prev-btn").onclick = () => {
-        if (currentIndex > 0) { currentIndex--; renderQuestion(); }
+        if (currentIndex > 0) { currentIndex--; showQuestion(); }
       };
       document.getElementById("submit-btn").onclick = () => finishExam(uid, email);
     }
 
-    function renderQuestion() {
+    function showQuestion() {
       const q = questions[currentIndex];
       const qBody = document.getElementById("q-body");
       const qOpts = document.getElementById("q-opts");
       qBody.textContent = `${currentIndex + 1}. ${q.text}`;
       qOpts.innerHTML = "";
-
-      if (q.type === "truefalse") q.options = ["Benar", "Salah"];
-
       q.options.forEach((opt, i) => {
         const checked = answers[currentIndex]?.includes(i) ? "checked" : "";
-        const inputType = q.type === "multiple" ? "checkbox" : "radio";
         qOpts.innerHTML += `
-          <label class="block border p-2 rounded cursor-pointer">
-            <input type="${inputType}" name="opt" value="${i}" ${checked} class="mr-2"> ${opt}
+          <label class="block border p-2 rounded cursor-pointer hover:bg-indigo-50">
+            <input type="checkbox" value="${i}" ${checked} class="mr-2"> ${opt}
           </label>`;
       });
-
-      qOpts.querySelectorAll("input").forEach(input => {
-        input.addEventListener("change", e => {
-          if (q.type === "multiple") {
-            if (!answers[currentIndex]) answers[currentIndex] = [];
-            if (e.target.checked) answers[currentIndex].push(parseInt(e.target.value));
-            else answers[currentIndex] = answers[currentIndex].filter(v => v !== parseInt(e.target.value));
-          } else {
-            answers[currentIndex] = [parseInt(e.target.value)];
-          }
-        });
-      });
+      document.querySelectorAll("input[type='checkbox']").forEach((r) =>
+        r.addEventListener("change", (e) => {
+          const val = parseInt(e.target.value);
+          if (!answers[currentIndex]) answers[currentIndex] = [];
+          if (e.target.checked) answers[currentIndex].push(val);
+          else answers[currentIndex] = answers[currentIndex].filter((x) => x !== val);
+        })
+      );
     }
 
     async function finishExam(uid, email) {
-      if (countdown) clearInterval(countdown);
+      clearInterval(countdown);
       let score = 0;
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
+      questions.forEach((q, i) => {
         const userAns = answers[i] || [];
-        const corr = q.correctIndices || [];
-        if (userAns.length === corr.length && userAns.every(a => corr.includes(a))) score++;
-      }
-
-      await setDoc(doc(db, "exam_results", uid), {
-        uid, email, score, total: questions.length, date: new Date().toISOString()
+        const correct = JSON.stringify(userAns.sort()) === JSON.stringify(q.correctIndices.sort());
+        if (correct) score++;
       });
-
+      await setDoc(doc(db, "exam_results", uid), { email, score, date: new Date().toISOString() });
       document.getElementById("result-card").classList.remove("hidden");
-      document.getElementById("result-text").textContent = `Nilai Kamu: ${score} dari ${questions.length}`;
-      ["q-body", "q-opts", "prev-btn", "next-btn", "submit-btn"].forEach(id => {
-        document.getElementById(id).classList.add("hidden");
-      });
+      document.getElementById("result-text").textContent = `Nilai Akhir Kamu: ${score} dari ${questions.length}`;
+      ["q-body", "q-opts", "prev-btn", "next-btn", "submit-btn"].forEach(id =>
+        document.getElementById(id).classList.add("hidden")
+      );
+      timerEl.textContent = "Selesai";
     }
   </script>
 </body>
