@@ -1,231 +1,200 @@
-// admin.js
 import { auth, db } from "./firebaseConfig.js";
 import {
   signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
+  signOut,
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-
 import {
   collection,
-  getDocs,
   addDoc,
+  getDocs,
   doc,
-  setDoc,
-  deleteDoc,
-  serverTimestamp
+  updateDoc,
+  deleteDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-/* ---------- UI refs ---------- */
-const loginCard = document.getElementById("login-card");
-const panel = document.getElementById("admin-panel");
-const emailSpan = document.getElementById("admin-email");
-const btnLogout = document.getElementById("btn-logout");
+const loginSection = document.getElementById("login-section");
+const dashboard = document.getElementById("dashboard");
+const emailInput = document.getElementById("email");
+const passInput = document.getElementById("password");
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
 
-const emailInput = document.getElementById("admin-email-input");
-const passInput = document.getElementById("admin-pass-input");
-const btnLogin = document.getElementById("btn-login");
-
-const qIdInput = document.getElementById("q-id");
-const qText = document.getElementById("q-text");
+const qIdInput = document.getElementById("qId");
+const qText = document.getElementById("qText");
 const optionsWrapper = document.getElementById("options-wrapper");
 const addOptionBtn = document.getElementById("add-option");
-const correctSelect = document.getElementById("correct-index");
-const btnSave = document.getElementById("btn-save");
-const btnClear = document.getElementById("btn-clear");
-const questionsList = document.getElementById("questions-list");
+const btnSave = document.getElementById("btnSave");
+const btnPreview = document.getElementById("btnPreview");
+const questionList = document.getElementById("questionList");
 
-/* ---------- helpers ---------- */
-function makeOptionInput(value = "") {
-  const idx = optionsWrapper.children.length;
-  const wrap = document.createElement("div");
-  wrap.className = "flex gap-2 items-center";
-  const input = document.createElement("input");
-  input.className = "input-field flex-1";
-  input.value = value;
-  input.placeholder = `Pilihan ${idx + 1}`;
-  const del = document.createElement("button");
-  del.className = "px-2 py-1 border rounded text-sm";
-  del.textContent = "Hapus";
-  del.onclick = () => {
-    wrap.remove();
-    rebuildCorrectSelect();
-  };
-  wrap.appendChild(input);
-  wrap.appendChild(del);
-  optionsWrapper.appendChild(wrap);
-  rebuildCorrectSelect();
-  return input;
-}
+const previewModal = document.getElementById("preview-modal");
+const previewQ = document.getElementById("preview-question");
+const previewOpts = document.getElementById("preview-options");
+const closePreview = document.getElementById("closePreview");
 
-function getOptionsValues() {
-  return Array.from(optionsWrapper.querySelectorAll("input")).map(i => i.value.trim());
-}
+let correctIndex = 0;
 
-function rebuildCorrectSelect() {
-  const opts = getOptionsValues();
-  correctSelect.innerHTML = "";
-  opts.forEach((o, i) => {
-    const el = document.createElement("option");
-    el.value = i;
-    el.textContent = `Pilihan ${i + 1}`;
-    correctSelect.appendChild(el);
-  });
-}
-
-/* ---------- Auth & UI ---------- */
-
-btnLogin.onclick = async () => {
+/* ========== LOGIN LOGIC ========== */
+loginBtn.onclick = async () => {
   try {
     await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
-  } catch (e) {
-    alert("Login gagal: " + e.message);
+  } catch (err) {
+    alert("Login gagal: " + err.message);
   }
 };
 
-btnLogout.onclick = async () => {
+logoutBtn.onclick = async () => {
   await signOut(auth);
 };
 
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, (user) => {
   if (user) {
-    // tampilkan panel admin
-    loginCard.classList.add("hidden");
-    panel.classList.remove("hidden");
-    btnLogout.classList.remove("hidden");
-    emailSpan.textContent = user.email;
-    // load soal
-    await loadQuestions();
+    loginSection.classList.add("hidden");
+    dashboard.classList.remove("hidden");
+    loadQuestions();
   } else {
-    panel.classList.add("hidden");
-    loginCard.classList.remove("hidden");
-    btnLogout.classList.add("hidden");
-    emailSpan.textContent = "";
+    loginSection.classList.remove("hidden");
+    dashboard.classList.add("hidden");
   }
 });
 
-/* ---------- Firestore CRUD ---------- */
+/* ========== SOAL MANAGEMENT ========== */
+function makeOptionInput(value = "", index = null) {
+  const idx = index ?? optionsWrapper.children.length;
+  const wrap = document.createElement("div");
+  wrap.className = "flex items-center gap-2";
 
-async function loadQuestions() {
-  questionsList.innerHTML = "<p class='text-sm text-gray-500'>Memuat soal...</p>";
-  try {
-    const snap = await getDocs(collection(db, "questions"));
-    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderQuestionsList(docs);
-  } catch (e) {
-    questionsList.innerHTML = "<p class='text-sm text-red-500'>Gagal memuat soal.</p>";
-    console.error(e);
-  }
+  const radio = document.createElement("input");
+  radio.type = "radio";
+  radio.name = "correctOpt";
+  radio.className = "h-4 w-4 text-indigo-600";
+  radio.checked = idx === correctIndex;
+  radio.onchange = () => (correctIndex = idx);
+
+  const input = document.createElement("input");
+  input.className = "input-field flex-1";
+  input.placeholder = `Pilihan ${idx + 1}`;
+  input.value = value;
+
+  const del = document.createElement("button");
+  del.textContent = "🗑️";
+  del.className = "px-2 py-1 border rounded text-sm";
+  del.onclick = () => {
+    wrap.remove();
+    rebuildIndexes();
+  };
+
+  wrap.append(radio, input, del);
+  optionsWrapper.append(wrap);
 }
 
-function renderQuestionsList(docs) {
-  if (docs.length === 0) {
-    questionsList.innerHTML = "<p class='text-sm text-gray-500'>Belum ada soal.</p>";
-    return;
-  }
-  questionsList.innerHTML = "";
-  docs.forEach((q, idx) => {
-    const wrap = document.createElement("div");
-    wrap.className = "border rounded p-3 flex justify-between items-start";
-    const left = document.createElement("div");
-    left.innerHTML = `<div class="text-sm font-medium">${idx + 1}. ${escapeHtml(q.questionText)}</div>
-                      <div class="text-xs text-gray-600 mt-2">${q.options?.map((o,i)=>`<div>${String.fromCharCode(65+i)}. ${escapeHtml(o)}</div>`).join("")}</div>`;
-    const actions = document.createElement("div");
-    actions.className = "flex flex-col gap-2";
-    const btnEdit = document.createElement("button");
-    btnEdit.className = "px-3 py-1 border rounded";
-    btnEdit.textContent = "Edit";
-    btnEdit.onclick = () => populateEditForm(q);
-    const btnDel = document.createElement("button");
-    btnDel.className = "px-3 py-1 bg-red-500 text-white rounded";
-    btnDel.textContent = "Hapus";
-    btnDel.onclick = async () => {
-      if (!confirm("Hapus soal ini?")) return;
-      try {
-        await deleteDoc(doc(collection(db, "questions").parent ? collection(db, "questions").parent : doc(db, "dummy"), q.id));
-      } catch (err) {
-        // fallback: use doc ref properly
-        await deleteDoc(doc(db, "questions", q.id));
-      }
-      await loadQuestions();
-    };
-    actions.appendChild(btnEdit);
-    actions.appendChild(btnDel);
-    wrap.appendChild(left);
-    wrap.appendChild(actions);
-    questionsList.appendChild(wrap);
+function rebuildIndexes() {
+  Array.from(optionsWrapper.children).forEach((div, i) => {
+    const input = div.querySelector("input[type=text]");
+    const radio = div.querySelector("input[type=radio]");
+    input.placeholder = `Pilihan ${i + 1}`;
+    radio.onchange = () => (correctIndex = i);
   });
 }
 
-/* escape helper */
-function escapeHtml(str = "") {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+function getOptionsValues() {
+  return Array.from(optionsWrapper.querySelectorAll("input[type=text]")).map(i => i.value.trim());
 }
 
-/* populate edit form */
-function populateEditForm(q) {
-  qIdInput.value = q.id;
-  qText.value = q.questionText || "";
-  optionsWrapper.innerHTML = "";
-  (q.options || []).forEach(o => makeOptionInput(o));
-  rebuildCorrectSelect();
-  correctSelect.value = (q.correctIndex ?? 0);
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
+addOptionBtn.onclick = () => makeOptionInput("");
 
-/* save new or update */
+makeOptionInput("");
+makeOptionInput("");
+
 btnSave.onclick = async () => {
   const text = qText.value.trim();
-  const options = getOptionsValues().filter(Boolean);
-  const correctIndex = parseInt(correctSelect.value || "0", 10);
-  if (!text) return alert("Teks soal harus diisi");
-  if (options.length < 2) return alert("Tambahkan minimal 2 pilihan");
-  const payload = {
-    questionText: text,
-    options,
-    correctIndex,
-    updatedAt: serverTimestamp()
-  };
+  const options = getOptionsValues();
+  if (!text || options.some(o => o === "")) return alert("Lengkapi soal & pilihan!");
+  const data = { questionText: text, options, correctIndex };
+
   try {
     if (qIdInput.value) {
-      // update
-      await setDoc(doc(db, "questions", qIdInput.value), { ...payload }, { merge: true });
-      alert("Soal diperbarui");
+      await updateDoc(doc(db, "questions", qIdInput.value), data);
+      alert("Soal diperbarui!");
     } else {
-      // add
-      await addDoc(collection(db, "questions"), {
-        ...payload,
-        createdAt: serverTimestamp()
-      });
-      alert("Soal disimpan");
+      await addDoc(collection(db, "questions"), data);
+      alert("Soal ditambahkan!");
     }
     clearForm();
-    await loadQuestions();
-  } catch (e) {
-    alert("Gagal menyimpan: " + e.message);
+    loadQuestions();
+  } catch (err) {
+    alert("Gagal menyimpan: " + err.message);
   }
 };
 
-btnClear.onclick = () => clearForm();
+async function loadQuestions() {
+  questionList.innerHTML = "<p class='text-gray-500 text-sm'>Memuat soal...</p>";
+  const query = await getDocs(collection(db, "questions"));
+  questionList.innerHTML = "";
+  query.forEach((docSnap) => {
+    const q = docSnap.data();
+    const div = document.createElement("div");
+    div.className = "p-3 border rounded-md hover:bg-gray-50 text-left";
+    div.innerHTML = `
+      <p class="font-semibold">${q.questionText}</p>
+      <p class="text-sm text-gray-600">Jawaban benar: <b>${q.options[q.correctIndex]}</b></p>
+      <div class="flex gap-2 mt-2">
+        <button class="px-2 py-1 border rounded text-sm text-blue-500" data-id="${docSnap.id}" data-action="edit">Edit</button>
+        <button class="px-2 py-1 border rounded text-sm text-red-500" data-id="${docSnap.id}" data-action="delete">Hapus</button>
+      </div>
+    `;
+    questionList.append(div);
+  });
+
+  questionList.querySelectorAll("button").forEach((btn) => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      const act = btn.dataset.action;
+      if (act === "edit") {
+        const snap = query.docs.find(d => d.id === id);
+        const q = snap.data();
+        qIdInput.value = id;
+        qText.value = q.questionText;
+        optionsWrapper.innerHTML = "";
+        correctIndex = q.correctIndex;
+        q.options.forEach((opt, i) => makeOptionInput(opt, i));
+      } else if (act === "delete") {
+        if (confirm("Hapus soal ini?")) {
+          await deleteDoc(doc(db, "questions", id));
+          loadQuestions();
+        }
+      }
+    };
+  });
+}
 
 function clearForm() {
   qIdInput.value = "";
   qText.value = "";
   optionsWrapper.innerHTML = "";
+  correctIndex = 0;
   makeOptionInput("");
   makeOptionInput("");
-  rebuildCorrectSelect();
-  correctSelect.value = "0";
 }
 
-/* add initial option inputs */
-makeOptionInput("");
-makeOptionInput("");
+/* ========== PREVIEW ========== */
+btnPreview.onclick = () => {
+  const text = qText.value.trim();
+  const options = getOptionsValues();
+  if (!text || options.some(o => o === "")) return alert("Isi soal & pilihan dulu!");
+  previewQ.textContent = text;
+  previewOpts.innerHTML = "";
+  options.forEach((opt, i) => {
+    const b = document.createElement("button");
+    b.textContent = opt;
+    b.className = "btn-primary w-full";
+    if (i === correctIndex) b.classList.add("border-2", "border-green-400");
+    previewOpts.append(b);
+  });
+  previewModal.classList.remove("hidden");
+};
 
-addOptionBtn.onclick = () => makeOptionInput("");
-
-/* NOTE: deleteDoc fallback function fixed above; but we'll import doc/deleteDoc accordingly */
-import { doc as docRef } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+closePreview.onclick = () => {
+  previewModal.classList.add("hidden");
+};
