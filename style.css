@@ -1,24 +1,23 @@
-/* style.css - custom tambahan */
-.btn-primary {
-  background-color: #7c3aed;
-  color: white;
-}
-.btn-primary:hover { background-color: #6d28d9; }
-
-.card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(16,24,40,0.06);
-  padding: 16px;
-}
 .input-field {
-  border: 1px solid #e6e6f6;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e0;
   border-radius: 8px;
-  padding: 8px 10px;
   outline: none;
+  transition: 0.2s;
 }
 .input-field:focus {
-  box-shadow: 0 0 0 4px rgba(124,58,237,0.08);
-  border-color: #7c3aed;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.2);
+}
+.btn-primary {
+  background-color: #6366f1;
+  color: white;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: 0.2s;
+}
+.btn-primary:hover {
+  background-color: #4f46e5;
 }
 .hidden { display: none; }
