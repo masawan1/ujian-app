@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Dashboard - Ujian Online</title>
+
+  <!-- Tailwind CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <script type="module" src="firebaseConfig.js"></script>
+  <script type="module" src="admin.js" defer></script>
+</head>
+<body class="bg-gradient-to-b from-indigo-50 to-white min-h-screen">
+
+  <div class="max-w-5xl mx-auto p-6">
+    <header class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-indigo-700">Admin Dashboard - Ujian Online</h1>
+      <div id="admin-actions" class="space-x-3">
+        <span id="admin-email" class="text-sm text-gray-600"></span>
+        <button id="btn-logout" class="btn-primary px-4 py-2 rounded-lg hidden">Logout</button>
+      </div>
+    </header>
+
+    <!-- LOGIN CARD -->
+    <div id="login-card" class="card max-w-md mx-auto">
+      <h2 class="text-lg font-semibold text-indigo-600 mb-3">Login Admin</h2>
+      <input id="admin-email-input" class="input-field w-full mb-2" placeholder="Email admin" />
+      <input id="admin-pass-input" class="input-field w-full mb-4" placeholder="Password" type="password" />
+      <div class="flex gap-2">
+        <button id="btn-login" class="btn-primary px-4 py-2 rounded-lg w-full">Login</button>
+      </div>
+      <p class="text-xs text-gray-500 mt-3">Pastikan akun admin telah dibuat di Firebase Authentication.</p>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div id="admin-panel" class="hidden space-y-6">
+
+      <!-- Form Tambah/Edit Soal -->
+      <div class="card">
+        <h3 class="text-lg font-medium text-indigo-700 mb-3">Tambah / Edit Soal</h3>
+
+        <input id="q-id" type="hidden" />
+        <label class="block text-sm text-gray-600">Teks Soal</label>
+        <textarea id="q-text" class="input-field w-full mb-3" rows="3" placeholder="Masukkan teks soal"></textarea>
+
+        <div id="options-wrapper" class="grid grid-cols-1 gap-2 mb-3">
+          <!-- opsi akan di-generate -->
+        </div>
+
+        <div class="flex items-center gap-3 mb-3">
+          <button id="add-option" class="px-3 py-1 border rounded-md text-sm">Tambah Pilihan</button>
+          <label class="text-sm text-gray-600">Pilihan Benar:</label>
+          <select id="correct-index" class="input-field px-2 py-1">
+            <!-- options -->
+          </select>
+        </div>
+
+        <div class="flex gap-3">
+          <button id="btn-save" class="btn-primary px-4 py-2 rounded-lg">Simpan Soal</button>
+          <button id="btn-clear" class="px-4 py-2 border rounded-lg">Bersihkan</button>
+        </div>
+      </div>
+
+      <!-- Daftar Soal -->
+      <div class="card">
+        <h3 class="text-lg font-medium text-indigo-700 mb-3">Daftar Soal</h3>
+        <div id="questions-list" class="space-y-3">
+          <!-- list soal -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
