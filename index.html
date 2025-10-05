@@ -109,7 +109,8 @@
     const timerEl = document.getElementById("timer");
     const warningBanner = document.getElementById("warningBanner");
 
-    let questions = [], currentIndex = 0, answers = {}, timer = 600, countdown;
+    // Durasi ujian diubah menjadi 90 menit = 5400 detik
+    let questions = [], currentIndex = 0, answers = {}, timer = 5400, countdown;
     let currentUserUid = null, currentUserEmail = null;
 
     // --- SIGN UP ---
