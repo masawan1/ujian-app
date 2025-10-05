@@ -1,0 +1,14 @@
+body {
+  font-family: sans-serif;
+  max-width: 500px;
+  margin: 40px auto;
+  text-align: center;
+}
+.hidden {
+  display: none;
+}
+button {
+  padding: 8px 16px;
+  margin: 10px;
+  cursor: pointer;
+}
