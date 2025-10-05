@@ -3,286 +3,249 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin Dashboard - Ujian Online</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <title>Ujian Online Interaktif</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
   <style>
-    .card { background: white; padding: 1.25rem; border-radius: 0.75rem; box-shadow: 0 6px 18px rgba(16,24,40,0.06); }
-    .btn { padding: .5rem .75rem; border-radius: .5rem; font-weight: 600; }
-    .btn-primary { background:#4f46e5; color:white; }
-    .btn-danger { background:#ef4444; color:white; }
-    .input { width:100%; padding:.5rem; border-radius:.5rem; border:1px solid #e5e7eb; }
-    table th, table td { padding:.5rem; border-bottom:1px solid #eef2ff; text-align:left; }
-    .nav-btn.active { background:#4f46e5; color:white; }
-    .opt-row { display:flex; align-items:center; gap:.5rem; }
+    .card { background: white; padding: 1.5rem; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .btn-primary { background: #6366f1; color: white; transition: 0.2s; }
+    .btn-primary:hover { background: #4f46e5; }
+    .input-field { border: 1px solid #d1d5db; padding: 0.5rem; border-radius: 0.5rem; }
+    .disabled { opacity: 0.5; pointer-events: none; }
   </style>
 </head>
-<body class="bg-indigo-50 min-h-screen p-6 font-sans">
 
-<div class="max-w-5xl mx-auto">
-  <h1 class="text-2xl font-bold text-indigo-700 mb-6">Dashboard Admin — Ujian Online</h1>
+<body class="bg-gradient-to-b from-indigo-50 to-white min-h-screen flex items-center justify-center font-sans">
 
-  <!-- LOGIN -->
-  <div id="loginCard" class="card max-w-md mx-auto mb-6">
-    <h2 class="font-semibold text-lg mb-3">Login Admin</h2>
-    <input id="adminEmail" class="input mb-2" placeholder="Email admin" type="email"/>
-    <input id="adminPass" class="input mb-3" placeholder="Password" type="password"/>
-    <div class="flex gap-3">
-      <button id="btnLogin" class="btn btn-primary flex-1">Masuk</button>
-      <button id="btnLogout" class="btn hidden">Keluar</button>
-    </div>
-    <p id="loginMsg" class="text-sm text-red-500 mt-2 hidden"></p>
-  </div>
+  <div class="w-full max-w-3xl p-6">
+    <!-- LOGIN / SIGNUP -->
+    <div id="login-sec" class="card max-w-md mx-auto text-center">
+      <h2 class="text-2xl font-semibold text-indigo-700 mb-3">Masuk ke Akun</h2>
+      <input id="email" class="input-field w-full mb-2" placeholder="Email" type="email" />
+      <input id="password" class="input-field w-full mb-4" placeholder="Password" type="password" />
+      <button id="loginBtn" class="btn-primary w-full py-2 rounded mb-2">Masuk</button>
+      <p class="text-sm text-gray-600">Belum punya akun? 
+        <span id="showSignUp" class="text-indigo-600 hover:underline cursor-pointer">Daftar</span>
+      </p>
 
-  <!-- DASHBOARD -->
-  <div id="adminPanel" class="card hidden">
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex gap-2">
-        <button class="btn nav-btn active" data-target="soalPanel">Kelola Soal</button>
-        <button class="btn nav-btn" data-target="pesertaPanel">Peserta Didik</button>
-        <button class="btn nav-btn" data-target="hasilPanel">Hasil Nilai</button>
+      <div id="signupBox" class="hidden mt-4">
+        <input id="nameSignUp" class="input-field w-full mb-2" placeholder="Nama Lengkap" />
+        <input id="emailSignUp" class="input-field w-full mb-2" placeholder="Email" type="email" />
+        <input id="passwordSignUp" class="input-field w-full mb-2" placeholder="Password" type="password" />
+        <button id="signUpBtn" class="btn-primary w-full py-2 rounded">Daftar</button>
       </div>
-      <div id="adminInfo" class="text-sm text-gray-600"></div>
+      <p id="msg" class="mt-3 text-sm text-red-500"></p>
     </div>
 
-    <!-- PANEL SOAL -->
-    <div id="soalPanel">
-      <h2 class="text-lg font-semibold text-indigo-700 mb-3">Kelola Soal</h2>
-      <div class="mb-4">
-        <input id="qText" class="input mb-2" placeholder="Tulis pertanyaan..." />
-        <div id="optsWrap" class="space-y-2 mb-2">
-          <div class="opt-row"><input class="input opt flex-1" placeholder="Opsi A" /><input type="checkbox" class="chk-correct"></div>
-          <div class="opt-row"><input class="input opt flex-1" placeholder="Opsi B" /><input type="checkbox" class="chk-correct"></div>
-          <div class="opt-row"><input class="input opt flex-1" placeholder="Opsi C" /><input type="checkbox" class="chk-correct"></div>
-          <div class="opt-row"><input class="input opt flex-1" placeholder="Opsi D" /><input type="checkbox" class="chk-correct"></div>
-        </div>
-        <div class="flex gap-3">
-          <button id="btnSaveQ" class="btn btn-primary">Tambah Soal</button>
-          <button id="btnClear" class="btn">Bersihkan</button>
-        </div>
+    <!-- ADMIN SECTION -->
+    <div id="admin-sec" class="hidden card mt-4">
+      <h2 class="text-xl font-semibold text-indigo-700 mb-4">Dashboard Admin</h2>
+      <input id="q-text" class="input-field w-full mb-2" placeholder="Tulis pertanyaan..." />
+      <div id="opts-container" class="space-y-2 mb-3">
+        <input class="input-field w-full option" placeholder="Opsi A" />
+        <input class="input-field w-full option" placeholder="Opsi B" />
+        <input class="input-field w-full option" placeholder="Opsi C" />
+        <input class="input-field w-full option" placeholder="Opsi D" />
       </div>
 
-      <div>
-        <h3 class="font-medium mb-2">Daftar Soal</h3>
-        <table class="w-full bg-white">
-          <thead><tr><th>Pertanyaan</th><th>Aksi</th></tr></thead>
-          <tbody id="qList"></tbody>
-        </table>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Jawaban Benar (bisa lebih dari satu):</label>
+      <div id="multi-correct" class="flex gap-3 mb-4">
+        <label><input type="checkbox" value="0" /> A</label>
+        <label><input type="checkbox" value="1" /> B</label>
+        <label><input type="checkbox" value="2" /> C</label>
+        <label><input type="checkbox" value="3" /> D</label>
       </div>
+
+      <button id="add-question" class="btn-primary px-4 py-2 rounded w-full mb-3">Tambah Soal</button>
+      <ul id="question-list" class="mt-4 text-sm text-gray-700 list-disc pl-5"></ul>
     </div>
 
-    <!-- PANEL PESERTA -->
-    <div id="pesertaPanel" class="hidden">
-      <h2 class="text-lg font-semibold text-indigo-700 mb-3">Kelola Peserta Didik</h2>
-      <div class="mb-4">
-        <input id="studentName" class="input mb-2" placeholder="Nama siswa" />
-        <input id="studentEmail" class="input mb-2" placeholder="Email siswa" />
-        <div class="flex gap-3">
-          <button id="btnAddStudent" class="btn btn-primary">Tambah Peserta</button>
-        </div>
+    <!-- STUDENT SECTION -->
+    <div id="student-sec" class="hidden card mt-4">
+      <div class="flex justify-between mb-3">
+        <h2 class="text-xl font-semibold text-indigo-700">Ujian Online</h2>
+        <div id="timer" class="text-red-500 font-bold"></div>
       </div>
-      <table class="w-full bg-white">
-        <thead><tr><th>Nama</th><th>Email</th><th>Aksi</th></tr></thead>
-        <tbody id="studentList"></tbody>
-      </table>
-    </div>
 
-    <!-- PANEL HASIL -->
-    <div id="hasilPanel" class="hidden">
-      <h2 class="text-lg font-semibold text-indigo-700 mb-3">Hasil Nilai Siswa</h2>
-      <div class="flex gap-2 mb-3">
-        <button id="btnExport" class="btn btn-primary">Export ke CSV</button>
-        <button id="btnRefreshResults" class="btn">Refresh</button>
+      <div id="q-body" class="mb-3 text-lg font-medium text-gray-800"></div>
+      <div id="q-opts" class="space-y-2 mb-4"></div>
+
+      <div class="flex justify-between">
+        <button id="prev-btn" class="px-3 py-1 border rounded text-gray-700">Sebelumnya</button>
+        <button id="next-btn" class="btn-primary px-4 py-1 rounded">Berikutnya</button>
+        <button id="submit-btn" class="bg-green-500 text-white px-3 py-1 rounded">Selesai</button>
       </div>
-      <table class="w-full bg-white">
-        <thead><tr><th>Nama</th><th>Email</th><th>Skor</th><th>Tanggal</th></tr></thead>
-        <tbody id="hasilList"></tbody>
-      </table>
+
+      <div id="result-card" class="hidden mt-6 text-center">
+        <h3 class="text-xl font-semibold text-indigo-700">Hasil Ujian</h3>
+        <p id="result-text" class="mt-3 text-gray-700"></p>
+      </div>
     </div>
   </div>
-</div>
 
-<script type="module">
-import { app, db, auth } from './firebaseConfig.js';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+  <script type="module">
+    import { auth, db } from "./firebaseConfig.js";
+    import {
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import {
+      collection, addDoc, getDocs, setDoc, doc,
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2";
+    const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2"; 
 
-const loginCard = document.getElementById('loginCard');
-const btnLogin = document.getElementById('btnLogin');
-const btnLogout = document.getElementById('btnLogout');
-const adminPanel = document.getElementById('adminPanel');
-const adminInfo = document.getElementById('adminInfo');
-const navBtns = document.querySelectorAll('.nav-btn');
+    const loginSec = document.getElementById("login-sec");
+    const adminSec = document.getElementById("admin-sec");
+    const studentSec = document.getElementById("student-sec");
+    const msg = document.getElementById("msg");
+    const timerEl = document.getElementById("timer");
 
-// NAV
-navBtns.forEach(btn=>{
-  btn.onclick=()=>{
-    navBtns.forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('#soalPanel,#pesertaPanel,#hasilPanel').forEach(p=>p.classList.add('hidden'));
-    document.getElementById(btn.dataset.target).classList.remove('hidden');
-    if(btn.dataset.target==='hasilPanel') loadResults();
-    if(btn.dataset.target==='pesertaPanel') loadStudents();
-    if(btn.dataset.target==='soalPanel') loadQuestions();
-  };
-});
+    let questions = [], currentIndex = 0, answers = {}, timer = 600, countdown;
 
-onAuthStateChanged(auth,user=>{
-  if(user && user.uid===ADMIN_UID){
-    loginCard.classList.add('hidden');
-    adminPanel.classList.remove('hidden');
-    adminInfo.textContent=`Login: ${user.email}`;
-    btnLogout.classList.remove('hidden');
-    loadQuestions();
-  } else {
-    loginCard.classList.remove('hidden');
-    adminPanel.classList.add('hidden');
-  }
-});
+    // Prevent Browsing (Anti-Cheat)
+    let warningCount = 0;
+    window.addEventListener("blur", () => {
+      warningCount++;
+      alert(`⚠️ Peringatan ${warningCount}: Jangan keluar dari layar ujian!`);
+      if (warningCount >= 3) {
+        alert("Ujian otomatis berakhir karena Anda keluar layar terlalu sering.");
+        location.reload();
+      }
+    });
 
-btnLogin.onclick=async()=>{
-  try{
-    await signInWithEmailAndPassword(auth,
-      document.getElementById('adminEmail').value,
-      document.getElementById('adminPass').value);
-  }catch(e){alert('Login gagal: '+e.message);}
-};
-btnLogout.onclick=()=>signOut(auth);
+    // SIGN UP
+    document.getElementById("showSignUp").onclick = () =>
+      document.getElementById("signupBox").classList.toggle("hidden");
 
-// ========== KELOLA SOAL ==========
-const qText=document.getElementById('qText');
-const optsWrap=document.getElementById('optsWrap');
-const btnSaveQ=document.getElementById('btnSaveQ');
-const btnClear=document.getElementById('btnClear');
-const qList=document.getElementById('qList');
+    document.getElementById("signUpBtn").onclick = async () => {
+      const name = document.getElementById("nameSignUp").value;
+      const email = document.getElementById("emailSignUp").value;
+      const password = document.getElementById("passwordSignUp").value;
+      if (!name || !email || !password)
+        return (msg.textContent = "Lengkapi semua data!");
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, "students", cred.user.uid), { name, email });
+        msg.textContent = "Pendaftaran berhasil, silakan login.";
+        msg.classList.remove("text-red-500");
+        msg.classList.add("text-green-600");
+      } catch (err) {
+        msg.textContent = "Gagal daftar: " + err.message;
+      }
+    };
 
-async function loadQuestions(){
-  qList.innerHTML='<tr><td colspan="2">Memuat...</td></tr>';
-  const snap=await getDocs(collection(db,'questions'));
-  qList.innerHTML='';
-  snap.forEach(d=>{
-    const q=d.data();
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${escapeHtml(q.text)}</td>
-      <td><button data-id="${d.id}" class="btn btn-primary text-xs">Edit</button>
-      <button data-id="${d.id}" class="btn btn-danger text-xs">Hapus</button></td>`;
-    qList.appendChild(tr);
-  });
-  qList.querySelectorAll('.btn-danger').forEach(b=>b.onclick=async()=>{await deleteDoc(doc(db,'questions',b.dataset.id));loadQuestions();});
-  qList.querySelectorAll('.btn-primary').forEach(b=>b.onclick=()=>editQuestion(b.dataset.id));
-}
+    // LOGIN
+    document.getElementById("loginBtn").onclick = async () => {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      try {
+        const userCred = await signInWithEmailAndPassword(auth, email, password);
+        const uid = userCred.user.uid;
+        loginSec.classList.add("hidden");
+        if (uid === ADMIN_UID) {
+          adminSec.classList.remove("hidden");
+          loadQuestions();
+        } else {
+          studentSec.classList.remove("hidden");
+          startExam(uid, email);
+        }
+      } catch (err) {
+        msg.textContent = "Login gagal: " + err.message;
+      }
+    };
 
-async function editQuestion(id){
-  const snap=await getDocs(collection(db,'questions'));
-  const f=snap.docs.find(s=>s.id===id);
-  if(!f) return alert('Soal tidak ditemukan');
-  const data=f.data();
-  qText.value=data.text||'';
-  const opts=optsWrap.querySelectorAll('.opt');
-  const chks=optsWrap.querySelectorAll('.chk-correct');
-  (data.options||[]).forEach((v,i)=>{if(opts[i])opts[i].value=v;});
-  chks.forEach((c,i)=>{c.checked=(data.correctIndexes||[]).includes(i);});
-  btnSaveQ.dataset.editing=id;
-  btnSaveQ.textContent='Perbarui Soal';
-}
+    // ADMIN
+    async function loadQuestions() {
+      const qList = document.getElementById("question-list");
+      qList.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "questions"));
+      snapshot.forEach((docSnap) => {
+        const q = docSnap.data();
+        qList.innerHTML += `<li>${q.text}</li>`;
+      });
 
-btnSaveQ.onclick=async()=>{
-  const text=qText.value.trim();
-  const opts=[...optsWrap.querySelectorAll('.opt')].map(o=>o.value.trim());
-  const correctIndexes=[...optsWrap.querySelectorAll('.chk-correct')].map((c,i)=>c.checked?i:null).filter(v=>v!==null);
-  if(!text||opts.some(o=>!o)||!correctIndexes.length) return alert('Isi soal, opsi, dan tandai jawaban benar!');
-  const data={text,options:opts,correctIndexes};
-  const id=btnSaveQ.dataset.editing;
-  if(id) await updateDoc(doc(db,'questions',id),data);
-  else await addDoc(collection(db,'questions'),data);
-  alert('Soal disimpan.');
-  btnSaveQ.textContent='Tambah Soal'; delete btnSaveQ.dataset.editing;
-  qText.value=''; optsWrap.querySelectorAll('.opt').forEach(i=>i.value=''); optsWrap.querySelectorAll('.chk-correct').forEach(c=>c.checked=false);
-  loadQuestions();
-};
-btnClear.onclick=()=>{qText.value='';optsWrap.querySelectorAll('.opt').forEach(i=>i.value='');optsWrap.querySelectorAll('.chk-correct').forEach(c=>c.checked=false);btnSaveQ.textContent='Tambah Soal';delete btnSaveQ.dataset.editing;};
+      document.getElementById("add-question").onclick = async () => {
+        const text = document.getElementById("q-text").value;
+        const options = Array.from(document.querySelectorAll(".option")).map((o) => o.value);
+        const correctIndices = Array.from(document.querySelectorAll("#multi-correct input:checked")).map(i => parseInt(i.value));
+        if (!text || options.some((o) => !o) || correctIndices.length === 0)
+          return alert("Lengkapi semua field dan pilih jawaban benar!");
+        await addDoc(collection(db, "questions"), { text, options, correctIndices });
+        alert("Soal berhasil ditambahkan!");
+        loadQuestions();
+      };
+    }
 
-// ========== PESERTA ==========
-const studentList=document.getElementById('studentList');
-const studentName=document.getElementById('studentName');
-const studentEmail=document.getElementById('studentEmail');
-const btnAddStudent=document.getElementById('btnAddStudent');
-async function loadStudents(){
-  studentList.innerHTML='<tr><td colspan="3">Memuat...</td></tr>';
-  const snap=await getDocs(collection(db,'students'));
-  studentList.innerHTML='';
-  snap.forEach(d=>{
-    const s=d.data();
-    studentList.innerHTML+=`<tr><td>${escapeHtml(s.name||'-')}</td><td>${escapeHtml(s.email||'-')}</td>
-      <td><button class="btn btn-danger text-xs" data-id="${d.id}">Hapus</button></td></tr>`;
-  });
-  studentList.querySelectorAll('button').forEach(b=>b.onclick=async()=>{await deleteDoc(doc(db,'students',b.dataset.id));loadStudents();});
-}
-btnAddStudent.onclick=async()=>{
-  if(!studentName.value.trim()||!studentEmail.value.trim())return alert('Isi nama dan email!');
-  await addDoc(collection(db,'students'),{name:studentName.value.trim(),email:studentEmail.value.trim()});
-  studentName.value='';studentEmail.value='';loadStudents();
-};
+    // SISWA
+    async function startExam(uid, email) {
+      const snapshot = await getDocs(collection(db, "questions"));
+      questions = snapshot.docs.map((d) => d.data());
+      if (!questions.length) {
+        document.getElementById("q-body").innerHTML = "<p class='text-red-500'>Belum ada soal.</p>";
+        return;
+      }
+      // Randomize question order
+      questions = questions.sort(() => Math.random() - 0.5);
 
-// ========== HASIL NILAI ==========
-const hasilList=document.getElementById('hasilList');
-const btnExport=document.getElementById('btnExport');
-const btnRefresh=document.getElementById('btnRefreshResults');
-const RESULT_COLLECTIONS=['exam_results','results','hasil_ujian'];
+      showQuestion();
+      countdown = setInterval(() => {
+        timer--;
+        const m = Math.floor(timer / 60), s = timer % 60;
+        timerEl.textContent = `${m}:${s.toString().padStart(2, "0")}`;
+        if (timer <= 0) {
+          clearInterval(countdown);
+          finishExam(uid, email);
+        }
+      }, 1000);
 
-async function loadResults(){
-  hasilList.innerHTML='<tr><td colspan="4">Memuat...</td></tr>';
-  const studentMap={};
-  const studSnap=await getDocs(collection(db,'students'));
-  studSnap.forEach(s=>studentMap[s.data().email]=s.data().name);
+      document.getElementById("next-btn").onclick = () => {
+        if (currentIndex < questions.length - 1) { currentIndex++; showQuestion(); }
+      };
+      document.getElementById("prev-btn").onclick = () => {
+        if (currentIndex > 0) { currentIndex--; showQuestion(); }
+      };
+      document.getElementById("submit-btn").onclick = () => finishExam(uid, email);
+    }
 
-  let found=null,snap=null;
-  for(const name of RESULT_COLLECTIONS){
-    const trySnap=await getDocs(collection(db,name));
-    if(!trySnap.empty){found=name;snap=trySnap;break;}
-  }
-  if(!snap||snap.empty){hasilList.innerHTML='<tr><td colspan="4">Belum ada hasil.</td></tr>';return;}
-  hasilList.innerHTML='';
-  snap.forEach(d=>{
-    const r=d.data();
-    const email=r.email||r.studentEmail||'-';
-    const name=studentMap[email]||r.name||r.studentName||'-';
-    const skor=r.score??r.percent??'-';
-    const tanggal=formatDate(r.date||r.timestamp||r.createdAt);
-    hasilList.innerHTML+=`<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(email)}</td><td>${skor}</td><td>${tanggal}</td></tr>`;
-  });
-}
-btnExport.onclick=async()=>{
-  const studentMap={};
-  const studSnap=await getDocs(collection(db,'students'));
-  studSnap.forEach(s=>studentMap[s.data().email]=s.data().name);
+    function showQuestion() {
+      const q = questions[currentIndex];
+      const qBody = document.getElementById("q-body");
+      const qOpts = document.getElementById("q-opts");
+      qBody.textContent = `${currentIndex + 1}. ${q.text}`;
+      qOpts.innerHTML = "";
+      q.options.forEach((opt, i) => {
+        const checked = answers[currentIndex]?.includes(i) ? "checked" : "";
+        qOpts.innerHTML += `
+          <label class="block border p-2 rounded cursor-pointer hover:bg-indigo-50">
+            <input type="checkbox" value="${i}" ${checked} class="mr-2"> ${opt}
+          </label>`;
+      });
+      document.querySelectorAll("input[type='checkbox']").forEach((r) =>
+        r.addEventListener("change", (e) => {
+          const val = parseInt(e.target.value);
+          if (!answers[currentIndex]) answers[currentIndex] = [];
+          if (e.target.checked) answers[currentIndex].push(val);
+          else answers[currentIndex] = answers[currentIndex].filter((x) => x !== val);
+        })
+      );
+    }
 
-  let found=null,snap=null;
-  for(const name of RESULT_COLLECTIONS){
-    const trySnap=await getDocs(collection(db,name));
-    if(!trySnap.empty){found=name;snap=trySnap;break;}
-  }
-  if(!snap||snap.empty)return alert('Tidak ada data.');
-  let csv="Nama,Email,Skor,Tanggal\n";
-  snap.forEach(d=>{
-    const r=d.data();
-    const email=r.email||r.studentEmail||'';
-    const name=studentMap[email]||r.name||r.studentName||'';
-    const skor=r.score??r.percent??'';
-    const tanggal=formatDate(r.date||r.timestamp||r.createdAt);
-    csv+=`"${name}","${email}","${skor}","${tanggal}"\n`;
-  });
-  const blob=new Blob([csv],{type:"text/csv"});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='hasil_ujian.csv';a.click();
-};
-btnRefresh.onclick=loadResults;
-
-// helpers
-function escapeHtml(s=''){return s.replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));}
-function formatDate(v){try{return v?.toDate?v.toDate().toLocaleString():new Date(v.seconds*1000).toLocaleString();}catch{return '-';}}
-</script>
+    async function finishExam(uid, email) {
+      clearInterval(countdown);
+      let score = 0;
+      questions.forEach((q, i) => {
+        const userAns = answers[i] || [];
+        const correct = JSON.stringify(userAns.sort()) === JSON.stringify(q.correctIndices.sort());
+        if (correct) score++;
+      });
+      await setDoc(doc(db, "exam_results", uid), { email, score, date: new Date().toISOString() });
+      document.getElementById("result-card").classList.remove("hidden");
+      document.getElementById("result-text").textContent = `Nilai Akhir Kamu: ${score} dari ${questions.length}`;
+      ["q-body", "q-opts", "prev-btn", "next-btn", "submit-btn"].forEach(id =>
+        document.getElementById(id).classList.add("hidden")
+      );
+      timerEl.textContent = "Selesai";
+    }
+  </script>
 </body>
 </html>
