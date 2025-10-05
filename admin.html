@@ -6,14 +6,14 @@
   <title>Dashboard Admin - Ujian Online</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
-    .card { background: white; padding: 1rem; border-radius: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .btn { padding: .5rem 1rem; border-radius: .5rem; font-weight: 600; }
+    .card { background: white; padding: 1.5rem; border-radius: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .btn { padding: .5rem 1rem; border-radius: .5rem; font-weight: 600; transition: 0.2s; }
     .btn-primary { background: #4f46e5; color: white; }
     .btn-primary:hover { background: #4338ca; }
     .btn-danger { background: #ef4444; color: white; }
     .btn-danger:hover { background: #dc2626; }
     .input { border: 1px solid #d1d5db; border-radius: .5rem; padding: .5rem; width: 100%; }
-    th, td { padding: .5rem; text-align: left; }
+    table th, table td { padding: .5rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
   </style>
 </head>
 <body class="bg-gray-100 p-6">
@@ -24,6 +24,7 @@
     <!-- === CRUD SOAL === -->
     <div class="card">
       <h2 class="text-xl font-semibold mb-3 text-indigo-600">Kelola Soal</h2>
+
       <input id="q-text" class="input mb-2" placeholder="Tulis pertanyaan..." />
       <div id="opts" class="space-y-2 mb-2">
         <input class="input option" placeholder="Opsi A" />
@@ -40,7 +41,7 @@
       <button id="addQ" class="btn btn-primary w-full mb-3">Tambah Soal</button>
 
       <table class="w-full text-sm border-t">
-        <thead><tr><th>Pertanyaan</th><th>Aksi</th></tr></thead>
+        <thead><tr><th>Pertanyaan</th><th>Jawaban Benar</th><th>Aksi</th></tr></thead>
         <tbody id="qList"></tbody>
       </table>
     </div>
@@ -70,14 +71,16 @@
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { 
+      getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc 
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    // KONFIGURASI FIREBASE
+    // === FIREBASE CONFIG ===
     const firebaseConfig = {
       apiKey: "AIzaSyATMc_z-Q2qNsojqsl58AN14hL5Ldf4k3U",
       authDomain: "ujian-online-f9fc2.firebaseapp.com",
-      projectId: "ujian-online-f9fc2"
+      projectId: "ujian-online-f9fc2",
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -92,11 +95,13 @@
       const snap = await getDocs(collection(db, "questions"));
       snap.forEach(d => {
         const q = d.data();
+        const correct = q.options?.[q.correctIndex] ?? "-";
         qList.innerHTML += `
           <tr>
-            <td>${q.text}</td>
+            <td class="font-medium">${q.text}</td>
+            <td>${correct}</td>
             <td>
-              <button class="btn btn-primary" onclick="editQuestion('${d.id}', '${q.text.replace(/'/g, "\\'")}')">Edit</button>
+              <button class="btn btn-primary" onclick="editQuestion('${d.id}')">Edit</button>
               <button class="btn btn-danger" onclick="deleteQuestion('${d.id}')">Hapus</button>
             </td>
           </tr>`;
@@ -104,28 +109,29 @@
     }
 
     window.deleteQuestion = async (id) => {
-      if (confirm("Hapus soal ini?")) {
+      if (confirm("Yakin hapus soal ini?")) {
         await deleteDoc(doc(db, "questions", id));
         loadQuestions();
       }
     };
 
-    window.editQuestion = async (id, oldText) => {
-      const newText = prompt("Edit pertanyaan:", oldText);
-      if (newText && newText !== oldText) {
-        await updateDoc(doc(db, "questions", id), { text: newText });
-        loadQuestions();
-      }
+    window.editQuestion = async (id) => {
+      const newText = prompt("Edit pertanyaan:");
+      if (!newText) return;
+      await updateDoc(doc(db, "questions", id), { text: newText });
+      loadQuestions();
     };
 
     document.getElementById("addQ").onclick = async () => {
-      const text = document.getElementById("q-text").value;
-      const options = Array.from(document.querySelectorAll(".option")).map(o => o.value);
+      const text = document.getElementById("q-text").value.trim();
+      const options = Array.from(document.querySelectorAll(".option")).map(o => o.value.trim());
       const correctIndex = parseInt(document.getElementById("correct").value);
       if (!text || options.some(o => !o)) return alert("Lengkapi semua field!");
       await addDoc(collection(db, "questions"), { text, options, correctIndex });
       document.getElementById("q-text").value = "";
+      document.querySelectorAll(".option").forEach(o => o.value = "");
       loadQuestions();
+      alert("✅ Soal berhasil ditambahkan!");
     };
 
     // === CRUD PESERTA ===
@@ -163,8 +169,8 @@
     };
 
     document.getElementById("addStudent").onclick = async () => {
-      const name = document.getElementById("s-name").value;
-      const email = document.getElementById("s-email").value;
+      const name = document.getElementById("s-name").value.trim();
+      const email = document.getElementById("s-email").value.trim();
       if (!name || !email) return alert("Lengkapi nama dan email!");
       await addDoc(collection(db, "students"), { name, email });
       document.getElementById("s-name").value = "";
