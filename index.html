@@ -2,18 +2,33 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,fireinitial-scale=1" />
-  <title>Ujian Online</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ujian Online Interaktif</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
   <style>
-    .card { background: white; padding: 1.5rem; border-radius: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    .btn-primary { background: #6366f1; color: white; transition: 0.2s; }
+    .card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .btn-primary {
+      background: #6366f1;
+      color: white;
+      transition: 0.2s;
+    }
     .btn-primary:hover { background: #4f46e5; }
-    .input-field { border: 1px solid #d1d5db; padding: 0.5rem; border-radius: 0.5rem; }
+    .input-field {
+      border: 1px solid #d1d5db;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+    }
   </style>
 </head>
 
-<body class="bg-gradient-to-b from-indigo-50 to-white min-h-screen flex items-center justify-center">
+<body class="bg-gradient-to-b from-indigo-50 to-white min-h-screen flex items-center justify-center font-sans">
+
   <div class="w-full max-w-3xl p-6">
     <!-- LOGIN -->
     <div id="login-sec" class="card max-w-md mx-auto text-center">
@@ -46,25 +61,39 @@
 
     <!-- STUDENT SECTION -->
     <div id="student-sec" class="hidden card mt-4">
-      <h2 class="text-xl font-semibold text-indigo-700 mb-3">Ujian Online</h2>
-      <div id="q-body" class="mb-3"></div>
-      <div id="q-opts" class="space-y-2"></div>
+      <div class="flex justify-between mb-3">
+        <h2 class="text-xl font-semibold text-indigo-700">Ujian Online</h2>
+        <div id="timer" class="text-red-500 font-bold"></div>
+      </div>
+
+      <div id="q-body" class="mb-3 text-lg font-medium text-gray-800"></div>
+      <div id="q-opts" class="space-y-2 mb-4"></div>
+
+      <div class="flex justify-between">
+        <button id="prev-btn" class="px-3 py-1 border rounded text-gray-700">Sebelumnya</button>
+        <button id="next-btn" class="btn-primary px-4 py-1 rounded">Berikutnya</button>
+        <button id="submit-btn" class="bg-green-500 text-white px-3 py-1 rounded">Selesai</button>
+      </div>
+
+      <div id="result-card" class="hidden mt-6 text-center">
+        <h3 class="text-xl font-semibold text-indigo-700">Hasil Ujian</h3>
+        <p id="result-text" class="mt-3 text-gray-700"></p>
+      </div>
     </div>
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    // GANTI DENGAN KONFIGURASI FIREBASE KAMU
     const firebaseConfig = {
       apiKey: "AIzaSyATMc_z-Q2qNsojqsl58AN14hL5Ldf4k3U",
       authDomain: "ujian-online-f9fc2.firebaseapp.com",
       projectId: "ujian-online-f9fc2"
     };
 
-    const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2"; // GANTI DENGAN UID ADMIN KAMU
+    const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2"; // Ganti UID sesuai admin kamu
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -73,16 +102,20 @@
     const loginSec = document.getElementById("login-sec");
     const adminSec = document.getElementById("admin-sec");
     const studentSec = document.getElementById("student-sec");
+    const timerEl = document.getElementById("timer");
 
-    // === LOGIN HANDLER ===
+    let questions = [];
+    let currentIndex = 0;
+    let answers = {};
+    let timer = 600; // 10 menit = 600 detik
+
+    // === LOGIN ===
     document.getElementById("loginBtn").onclick = async () => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
-
       try {
         const userCred = await signInWithEmailAndPassword(auth, email, password);
         const uid = userCred.user.uid;
-        console.log("Login sukses:", uid);
 
         loginSec.classList.add("hidden");
         if (uid === ADMIN_UID) {
@@ -90,7 +123,7 @@
           loadQuestions();
         } else {
           studentSec.classList.remove("hidden");
-          loadStudentQuestions();
+          startExam();
         }
       } catch (err) {
         alert("Login gagal: " + err.message);
@@ -111,7 +144,6 @@
         const text = document.getElementById("q-text").value;
         const options = Array.from(document.querySelectorAll(".option")).map(o => o.value);
         const correctIndex = parseInt(document.getElementById("correct-index").value);
-
         if (!text || options.some(o => !o)) return alert("Isi semua field!");
         await addDoc(collection(db, "questions"), { text, options, correctIndex });
         alert("Soal berhasil ditambahkan!");
@@ -119,20 +151,84 @@
       };
     }
 
-    // === SISWA: BACA SOAL ===
-    async function loadStudentQuestions() {
+    // === SISWA: MENGERJAKAN SOAL ===
+    async function startExam() {
       const qBody = document.getElementById("q-body");
       const qOpts = document.getElementById("q-opts");
+
       const snapshot = await getDocs(collection(db, "questions"));
-      qBody.innerHTML = "";
+      questions = snapshot.docs.map(doc => doc.data());
+      if (!questions.length) {
+        qBody.innerHTML = "<p class='text-red-500'>Belum ada soal.</p>";
+        return;
+      }
+
+      showQuestion();
+
+      // Timer
+      const countdown = setInterval(() => {
+        timer--;
+        const minutes = Math.floor(timer / 60);
+        const seconds = timer % 60;
+        timerEl.textContent = `${minutes}:${seconds.toString().padStart(2,"0")}`;
+        if (timer <= 0) {
+          clearInterval(countdown);
+          finishExam();
+        }
+      }, 1000);
+
+      document.getElementById("next-btn").onclick = () => {
+        if (currentIndex < questions.length - 1) {
+          currentIndex++;
+          showQuestion();
+        }
+      };
+      document.getElementById("prev-btn").onclick = () => {
+        if (currentIndex > 0) {
+          currentIndex--;
+          showQuestion();
+        }
+      };
+      document.getElementById("submit-btn").onclick = finishExam;
+    }
+
+    function showQuestion() {
+      const q = questions[currentIndex];
+      const qBody = document.getElementById("q-body");
+      const qOpts = document.getElementById("q-opts");
+
+      qBody.textContent = `${currentIndex + 1}. ${q.text}`;
       qOpts.innerHTML = "";
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        qBody.innerHTML += `<p class='font-semibold mb-2'>${data.text}</p>`;
-        data.options.forEach(opt => {
-          qOpts.innerHTML += `<div><input type='radio' name='opt'> ${opt}</div>`;
+      q.options.forEach((opt, i) => {
+        const checked = answers[currentIndex] === i ? "checked" : "";
+        qOpts.innerHTML += `
+          <label class="block border p-2 rounded cursor-pointer">
+            <input type="radio" name="opt" value="${i}" ${checked} class="mr-2"> ${opt}
+          </label>`;
+      });
+
+      document.querySelectorAll("input[name='opt']").forEach(radio => {
+        radio.addEventListener("change", e => {
+          answers[currentIndex] = parseInt(e.target.value);
         });
       });
+    }
+
+    function finishExam() {
+      let score = 0;
+      questions.forEach((q, i) => {
+        if (answers[i] === q.correctIndex) score++;
+      });
+
+      document.getElementById("result-card").classList.remove("hidden");
+      document.getElementById("result-text").textContent =
+        `Nilai Akhir Kamu: ${score} dari ${questions.length}`;
+      document.getElementById("q-body").classList.add("hidden");
+      document.getElementById("q-opts").classList.add("hidden");
+      document.getElementById("prev-btn").classList.add("hidden");
+      document.getElementById("next-btn").classList.add("hidden");
+      document.getElementById("submit-btn").classList.add("hidden");
+      timerEl.textContent = "Waktu Habis";
     }
   </script>
 </body>
