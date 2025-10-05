@@ -94,7 +94,10 @@
       <!-- PANEL HASIL -->
       <div id="hasilPanel" class="hidden">
         <h2 class="text-lg font-semibold text-indigo-700 mb-3">Hasil Nilai Siswa</h2>
-        <button id="btnExport" class="btn btn-primary mb-3">Export ke CSV</button>
+        <div class="flex gap-2 mb-3">
+          <button id="btnExport" class="btn btn-primary">Export ke CSV</button>
+          <button id="btnRefreshResults" class="btn">Refresh</button>
+        </div>
         <table class="w-full bg-white">
           <thead><tr><th>Nama</th><th>Email</th><th>Skor</th><th>Tanggal</th></tr></thead>
           <tbody id="hasilList"></tbody>
@@ -104,15 +107,10 @@
   </div>
 
   <script type="module">
+    // gunakan firebaseConfig.js yang mengekspor { app, db, auth }
     import { app, db, auth } from './firebaseConfig.js';
-    import {
-      signInWithEmailAndPassword,
-      signOut,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-    import {
-      collection, getDocs, addDoc, deleteDoc, doc, updateDoc
-    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
     const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2";
 
@@ -124,19 +122,32 @@
     const loginMsg = document.getElementById('loginMsg');
     const navBtns = document.querySelectorAll('.nav-btn');
 
-    // ================== PANEL NAVIGATION ==================
+    // NAV handling: show/hide panels and call loader for hasil
     navBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         navBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        document.querySelectorAll('#adminPanel > div[id$="Panel"]').forEach(p => p.classList.add('hidden'));
+        document.getElementById('soalPanel').classList.add('hidden');
+        document.getElementById('pesertaPanel').classList.add('hidden');
+        document.getElementById('hasilPanel').classList.add('hidden');
         document.getElementById(btn.dataset.target).classList.remove('hidden');
+
+        // when hasil panel shown, refresh results
+        if (btn.dataset.target === 'hasilPanel') {
+          loadResults();
+        }
+        if (btn.dataset.target === 'pesertaPanel') {
+          loadStudents();
+        }
+        if (btn.dataset.target === 'soalPanel') {
+          loadQuestions();
+        }
       });
     });
 
     function showError(msg, err) {
       console.error(msg, err);
-      alert(msg + (err ? "\\n" + (err.message || err) : ""));
+      alert(msg + (err ? "\n" + (err.message || err) : ""));
     }
 
     onAuthStateChanged(auth, user => {
@@ -145,9 +156,8 @@
         adminPanel.classList.remove('hidden');
         adminInfo.textContent = `Login sebagai: ${user.email}`;
         btnLogout.classList.remove('hidden');
+        // initial load for the active panel
         loadQuestions();
-        loadStudents();
-        loadResults();
       } else {
         loginCard.classList.remove('hidden');
         adminPanel.classList.add('hidden');
@@ -164,116 +174,211 @@
 
     btnLogout.addEventListener('click', async () => { await signOut(auth); });
 
-    // ================== KELOLA SOAL ==================
+    // ================== SOAL ==================
     const qText = document.getElementById('qText');
     const optsWrap = document.getElementById('optsWrap');
     const correctIdx = document.getElementById('correctIdx');
     const btnSaveQ = document.getElementById('btnSaveQ');
     const btnClear = document.getElementById('btnClear');
     const qList = document.getElementById('qList');
-    let editingId = null;
 
     async function loadQuestions() {
-      qList.innerHTML = "<tr><td colspan='2'>Memuat...</td></tr>";
-      const snap = await getDocs(collection(db, 'questions'));
-      qList.innerHTML = "";
-      snap.forEach(docSnap => {
-        const q = docSnap.data();
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${q.text}</td>
-          <td>
-            <button class='btn btn-primary text-xs' data-id='${docSnap.id}' data-action='edit'>Edit</button>
-            <button class='btn btn-danger text-xs' data-id='${docSnap.id}' data-action='delete'>Hapus</button>
-          </td>`;
-        qList.appendChild(tr);
-      });
+      try {
+        qList.innerHTML = "<tr><td colspan='2'>Memuat...</td></tr>";
+        const snap = await getDocs(collection(db, 'questions'));
+        qList.innerHTML = "";
+        snap.forEach(docSnap => {
+          const q = docSnap.data();
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${escapeHtml(q.text)}</td>
+            <td>
+              <button class='btn btn-primary text-xs' data-id='${docSnap.id}' data-action='edit'>Edit</button>
+              <button class='btn btn-danger text-xs' data-id='${docSnap.id}' data-action='delete'>Hapus</button>
+            </td>`;
+          qList.appendChild(tr);
+        });
 
-      qList.querySelectorAll('button').forEach(btn=>{
-        btn.onclick = async()=>{
-          const id = btn.dataset.id;
-          if(btn.dataset.action==="delete"){
-            if(confirm("Hapus soal ini?")) await deleteDoc(doc(db,"questions",id));
-            loadQuestions();
-          }
-        };
-      });
+        qList.querySelectorAll('button').forEach(btn=>{
+          btn.onclick = async()=>{
+            const id = btn.dataset.id;
+            const action = btn.dataset.action;
+            if(action==="delete"){
+              if(!confirm("Hapus soal ini?")) return;
+              try { await deleteDoc(doc(db,"questions",id)); loadQuestions(); }
+              catch(err){ showError('Gagal menghapus soal', err); }
+            } else if(action==="edit"){
+              // fetch doc
+              try {
+                const snaps = await getDocs(collection(db,'questions'));
+                const found = snaps.docs.find(s=>s.id===id);
+                if(!found) return alert('Soal tidak ditemukan');
+                const data = found.data();
+                qText.value = data.text||'';
+                const inputs = optsWrap.querySelectorAll('.opt');
+                (data.options||[]).forEach((v,i)=>{ if(inputs[i]) inputs[i].value = v; });
+                correctIdx.value = data.correctIndex ?? 0;
+                // set up update by delete+add or updateDoc (we used updateDoc before but need doc ref)
+                // For simplicity here we'll delete then add on save (or you can implement updateDoc)
+                // Save id to a temp attribute
+                btnSaveQ.dataset.editing = id;
+                btnSaveQ.textContent = 'Perbarui Soal';
+              } catch(err){ showError('Gagal load soal untuk edit', err); }
+            }
+          };
+        });
+      } catch(err){ showError('Gagal memuat soal', err); }
     }
 
     btnSaveQ.onclick = async()=>{
-      const text = qText.value;
-      const options = Array.from(optsWrap.querySelectorAll(".opt")).map(i=>i.value);
-      const correct = parseInt(correctIdx.value);
-      if(!text || options.some(o=>!o)) return alert("Lengkapi semua bidang");
-      await addDoc(collection(db,"questions"),{text,options,correctIndex:correct});
-      alert("Soal ditambahkan");
-      loadQuestions();
+      try {
+        const text = qText.value.trim();
+        const options = Array.from(optsWrap.querySelectorAll(".opt")).map(i=>i.value.trim());
+        const correct = parseInt(correctIdx.value);
+        if(!text || options.some(o=>!o)) return alert("Lengkapi semua bidang");
+        const editingId = btnSaveQ.dataset.editing || null;
+        if(editingId){
+          // update existing doc
+          await updateDoc(doc(db,'questions',editingId), { text, options, correctIndex: correct });
+          delete btnSaveQ.dataset.editing;
+          btnSaveQ.textContent = 'Tambah Soal';
+          alert('Soal diperbarui');
+        } else {
+          await addDoc(collection(db,"questions"),{text,options,correctIndex:correct});
+          alert("Soal ditambahkan");
+        }
+        qText.value=''; optsWrap.querySelectorAll('.opt').forEach(i=>i.value=''); correctIdx.value='0';
+        loadQuestions();
+      } catch(err){ showError('Gagal menyimpan soal', err); }
     };
 
-    btnClear.onclick = ()=>{ qText.value=""; optsWrap.querySelectorAll(".opt").forEach(i=>i.value=""); };
+    btnClear.onclick = ()=>{ qText.value=""; optsWrap.querySelectorAll('.opt').forEach(i=>i.value=""); correctIdx.value='0'; btnSaveQ.textContent='Tambah Soal'; delete btnSaveQ.dataset.editing; };
 
-    // ================== KELOLA PESERTA ==================
+    // ================== PESERTA ==================
     const studentList = document.getElementById('studentList');
     const btnAddStudent = document.getElementById('btnAddStudent');
     const studentName = document.getElementById('studentName');
     const studentEmail = document.getElementById('studentEmail');
 
     async function loadStudents() {
-      studentList.innerHTML = "<tr><td colspan='3'>Memuat...</td></tr>";
-      const snap = await getDocs(collection(db,'students'));
-      studentList.innerHTML = "";
-      snap.forEach(d=>{
-        const s = d.data();
-        studentList.innerHTML += `<tr><td>${s.name}</td><td>${s.email}</td>
-          <td><button class='btn btn-danger text-xs' data-id='${d.id}'>Hapus</button></td></tr>`;
-      });
-      studentList.querySelectorAll('button').forEach(b=>{
-        b.onclick = async()=>{
-          await deleteDoc(doc(db,'students',b.dataset.id));
-          loadStudents();
-        };
-      });
+      try {
+        studentList.innerHTML = "<tr><td colspan='3'>Memuat...</td></tr>";
+        const snap = await getDocs(collection(db,'students'));
+        studentList.innerHTML = "";
+        snap.forEach(d=>{
+          const s = d.data();
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${escapeHtml(s.name||'-')}</td><td>${escapeHtml(s.email||'-')}</td>
+            <td><button class='btn btn-danger text-xs' data-id='${d.id}'>Hapus</button></td>`;
+          studentList.appendChild(tr);
+        });
+        studentList.querySelectorAll('button').forEach(b=>{
+          b.onclick = async()=>{ if(confirm('Hapus peserta?')){ await deleteDoc(doc(db,'students',b.dataset.id)); loadStudents(); } };
+        });
+      } catch(err){ showError('Gagal memuat peserta', err); }
     }
 
     btnAddStudent.onclick = async()=>{
-      const name = studentName.value.trim();
-      const email = studentEmail.value.trim();
-      if(!name || !email) return alert("Isi nama & email");
-      await addDoc(collection(db,'students'),{name,email});
-      alert("Peserta ditambahkan");
-      studentName.value=''; studentEmail.value='';
-      loadStudents();
+      try {
+        const name = studentName.value.trim(); const email = studentEmail.value.trim();
+        if(!name || !email) return alert("Isi nama & email");
+        await addDoc(collection(db,'students'),{name,email});
+        studentName.value=''; studentEmail.value='';
+        loadStudents();
+      } catch(err){ showError('Gagal tambah peserta', err); }
     };
 
     // ================== HASIL NILAI ==================
     const hasilList = document.getElementById('hasilList');
     const btnExport = document.getElementById('btnExport');
+    const btnRefresh = document.getElementById('btnRefreshResults');
 
-    async function loadResults(){
-      hasilList.innerHTML="<tr><td colspan='4'>Memuat...</td></tr>";
-      const snap = await getDocs(collection(db,'results'));
-      hasilList.innerHTML="";
-      snap.forEach(d=>{
-        const r = d.data();
-        const date = r.date ? new Date(r.date).toLocaleString() : '-';
-        hasilList.innerHTML += `<tr><td>${r.name||'-'}</td><td>${r.email||'-'}</td><td>${r.score||0}</td><td>${date}</td></tr>`;
-      });
+    // collection names we try (support older variants)
+    const RESULT_COLLECTIONS_TO_TRY = ['exam_results','results','hasil_ujian'];
+
+    function formatDateValue(v){
+      if(!v) return '-';
+      // Firestore Timestamp
+      if(typeof v === 'object' && (v.seconds || v.toDate)) {
+        try {
+          if(v.toDate) return v.toDate().toLocaleString();
+          return new Date(v.seconds * 1000).toLocaleString();
+        } catch(e){ return String(v); }
+      }
+      // ISO string or number
+      try { return new Date(v).toLocaleString(); } catch(e){ return String(v); }
     }
 
-    // export CSV
-    btnExport.onclick = async()=>{
-      const snap = await getDocs(collection(db,'results'));
-      let csv = "Nama,Email,Skor,Tanggal\n";
-      snap.forEach(d=>{
-        const r=d.data();
-        csv += `"${r.name||''}","${r.email||''}","${r.score||0}","${r.date||''}"\n`;
-      });
-      const blob = new Blob([csv],{type:"text/csv"});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download="hasil_nilai.csv"; a.click();
-      URL.revokeObjectURL(url);
+    async function findResultsCollection() {
+      // pick the first collection that has docs
+      for(const name of RESULT_COLLECTIONS_TO_TRY){
+        try {
+          const snap = await getDocs(collection(db, name));
+          if(!snap.empty) return { name, snap };
+        } catch(e){
+          // ignore permission errors here, will be handled by caller
+          console.warn('Error reading collection', name, e);
+        }
+      }
+      // none found: return first name as default (so export will still attempt)
+      return { name: RESULT_COLLECTIONS_TO_TRY[0], snap: null };
+    }
+
+    async function loadResults(){
+      try {
+        hasilList.innerHTML = "<tr><td colspan='4'>Memuat...</td></tr>";
+        const { name, snap } = await findResultsCollection();
+        if(!snap || snap.empty){
+          hasilList.innerHTML = "<tr><td colspan='4'>Belum ada hasil ujian.</td></tr>";
+          return;
+        }
+        hasilList.innerHTML = "";
+        snap.forEach(d=>{
+          const r = d.data();
+          // normalize fields - support several schema variants
+          const nameField = r.name || r.studentName || r.fullname || '-';
+          const emailField = r.email || r.studentEmail || r.uid || '-';
+          const scoreField = ('score' in r) ? r.score : (r.percent ?? '-');
+          const dateField = formatDateValue(r.date || r.createdAt || r.timestamp);
+          hasilList.innerHTML += `<tr><td>${escapeHtml(nameField)}</td><td>${escapeHtml(emailField)}</td><td>${escapeHtml(scoreField)}</td><td>${escapeHtml(dateField)}</td></tr>`;
+        });
+      } catch(err){
+        showError('Gagal memuat hasil ujian — cek rules & permission', err);
+        hasilList.innerHTML = "<tr><td colspan='4'>Error: tidak dapat memuat hasil (cek console).</td></tr>";
+      }
+    }
+
+    // Export CSV from the same collection we read
+    btnExport.onclick = async () => {
+      try {
+        const { name, snap } = await findResultsCollection();
+        if(!snap || snap.empty){ return alert('Belum ada data untuk diexport.'); }
+        let csv = "Nama,Email,Skor,Tanggal\n";
+        snap.forEach(d=>{
+          const r = d.data();
+          const nameField = (r.name || r.studentName || '') .replace(/"/g,'""');
+          const emailField = (r.email || r.studentEmail || '') .replace(/"/g,'""');
+          const scoreField = ('score' in r) ? r.score : (r.percent ?? '');
+          const dateField = formatDateValue(r.date || r.createdAt || r.timestamp) .replace(/"/g,'""');
+          csv += `"${nameField}","${emailField}","${scoreField}","${dateField}"\n`;
+        });
+        const blob = new Blob([csv],{type:"text/csv"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `hasil_ujian_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch(err){
+        showError('Gagal export CSV', err);
+      }
     };
+
+    btnRefresh.onclick = loadResults;
+
+    // small helper
+    function escapeHtml(s=''){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // initial: nothing (auth will trigger loads)
   </script>
 </body>
 </html>
