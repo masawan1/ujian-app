@@ -1,63 +1,204 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Admin | Cloudy Edu</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard Admin - Ujian Online</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
-  <script type="module" src="firebaseConfig.js"></script>
-  <script type="module" src="admin.js" defer></script>
+  <style>
+    .card { background: white; padding: 1rem; border-radius: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .btn { padding: .5rem 1rem; border-radius: .5rem; font-weight: 600; }
+    .btn-primary { background: #4f46e5; color: white; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .input { border: 1px solid #d1d5db; border-radius: .5rem; padding: .5rem; width: 100%; }
+    th, td { padding: .5rem; text-align: left; }
+  </style>
 </head>
+<body class="bg-gray-100 p-6">
 
-<body class="bg-gradient-to-b from-indigo-100 to-white min-h-screen flex items-center justify-center">
+  <h1 class="text-3xl font-bold text-indigo-700 mb-6 text-center">📘 Dashboard Admin Ujian Online</h1>
 
-  <!-- LOGIN -->
-  <div id="login-section" class="bg-white shadow-xl rounded-2xl p-8 w-[90%] max-w-md text-center space-y-4">
-    <h1 class="text-2xl font-bold text-indigo-600">Login Admin</h1>
-    <input type="email" id="email" placeholder="Email" class="input-field" />
-    <input type="password" id="password" placeholder="Password" class="input-field" />
-    <button id="loginBtn" class="btn-primary w-full">Masuk</button>
-  </div>
-
-  <!-- DASHBOARD -->
-  <div id="dashboard" class="hidden w-[95%] max-w-3xl mx-auto p-6 bg-white shadow-2xl rounded-2xl space-y-5">
-    <div class="flex justify-between items-center">
-      <h2 class="text-2xl font-bold text-indigo-600">Dashboard Admin</h2>
-      <button id="logoutBtn" class="text-red-500 border border-red-500 px-3 py-1 rounded-md">Keluar</button>
-    </div>
-
-    <div class="border-t pt-4">
-      <h3 class="font-semibold mb-2 text-gray-700">Tambah / Edit Soal</h3>
-
-      <div class="space-y-3">
-        <input type="hidden" id="qId">
-        <input type="text" id="qText" placeholder="Tulis pertanyaan di sini..." class="input-field">
-
-        <div id="options-wrapper" class="space-y-2"></div>
-        <button id="add-option" class="px-3 py-1 border rounded-md text-sm">+ Tambah Pilihan</button>
-
-        <div class="flex gap-3">
-          <button id="btnSave" class="btn-primary flex-1">💾 Simpan Soal</button>
-          <button id="btnPreview" class="border rounded-md flex-1 text-sm py-2 hover:bg-gray-100">👁️ Preview</button>
-        </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- === CRUD SOAL === -->
+    <div class="card">
+      <h2 class="text-xl font-semibold mb-3 text-indigo-600">Kelola Soal</h2>
+      <input id="q-text" class="input mb-2" placeholder="Tulis pertanyaan..." />
+      <div id="opts" class="space-y-2 mb-2">
+        <input class="input option" placeholder="Opsi A" />
+        <input class="input option" placeholder="Opsi B" />
+        <input class="input option" placeholder="Opsi C" />
+        <input class="input option" placeholder="Opsi D" />
       </div>
+      <select id="correct" class="input mb-2">
+        <option value="0">Jawaban Benar: Opsi A</option>
+        <option value="1">Jawaban Benar: Opsi B</option>
+        <option value="2">Jawaban Benar: Opsi C</option>
+        <option value="3">Jawaban Benar: Opsi D</option>
+      </select>
+      <button id="addQ" class="btn btn-primary w-full mb-3">Tambah Soal</button>
+
+      <table class="w-full text-sm border-t">
+        <thead><tr><th>Pertanyaan</th><th>Aksi</th></tr></thead>
+        <tbody id="qList"></tbody>
+      </table>
     </div>
 
-    <div class="border-t pt-4">
-      <h3 class="font-semibold mb-2 text-gray-700">Daftar Soal</h3>
-      <div id="questionList" class="space-y-2"></div>
+    <!-- === CRUD PESERTA === -->
+    <div class="card">
+      <h2 class="text-xl font-semibold mb-3 text-indigo-600">Kelola Peserta Didik</h2>
+      <input id="s-name" class="input mb-2" placeholder="Nama Lengkap" />
+      <input id="s-email" class="input mb-2" placeholder="Email Siswa" />
+      <button id="addStudent" class="btn btn-primary w-full mb-3">Tambah Peserta</button>
+
+      <table class="w-full text-sm border-t">
+        <thead><tr><th>Nama</th><th>Email</th><th>Aksi</th></tr></thead>
+        <tbody id="studentList"></tbody>
+      </table>
     </div>
   </div>
 
-  <!-- PREVIEW MODAL -->
-  <div id="preview-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white p-6 rounded-2xl w-[90%] max-w-md space-y-4 text-center shadow-2xl">
-      <h2 id="preview-question" class="text-lg font-semibold text-indigo-700"></h2>
-      <div id="preview-options" class="space-y-2"></div>
-      <button id="closePreview" class="btn-primary w-full">Tutup Preview</button>
-    </div>
+  <!-- === HASIL UJIAN === -->
+  <div class="card mt-6">
+    <h2 class="text-xl font-semibold mb-3 text-indigo-600">Hasil Ujian</h2>
+    <button id="exportBtn" class="btn btn-primary mb-3">📤 Export ke CSV</button>
+    <table class="w-full text-sm border-t">
+      <thead><tr><th>Nama</th><th>Email</th><th>Nilai</th></tr></thead>
+      <tbody id="resultList"></tbody>
+    </table>
   </div>
 
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // KONFIGURASI FIREBASE
+    const firebaseConfig = {
+      apiKey: "AIzaSyATMc_z-Q2qNsojqsl58AN14hL5Ldf4k3U",
+      authDomain: "ujian-online-f9fc2.firebaseapp.com",
+      projectId: "ujian-online-f9fc2"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const qList = document.getElementById("qList");
+    const sList = document.getElementById("studentList");
+    const rList = document.getElementById("resultList");
+
+    // === CRUD SOAL ===
+    async function loadQuestions() {
+      qList.innerHTML = "";
+      const snap = await getDocs(collection(db, "questions"));
+      snap.forEach(d => {
+        const q = d.data();
+        qList.innerHTML += `
+          <tr>
+            <td>${q.text}</td>
+            <td>
+              <button class="btn btn-primary" onclick="editQuestion('${d.id}', '${q.text.replace(/'/g, "\\'")}')">Edit</button>
+              <button class="btn btn-danger" onclick="deleteQuestion('${d.id}')">Hapus</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    window.deleteQuestion = async (id) => {
+      if (confirm("Hapus soal ini?")) {
+        await deleteDoc(doc(db, "questions", id));
+        loadQuestions();
+      }
+    };
+
+    window.editQuestion = async (id, oldText) => {
+      const newText = prompt("Edit pertanyaan:", oldText);
+      if (newText && newText !== oldText) {
+        await updateDoc(doc(db, "questions", id), { text: newText });
+        loadQuestions();
+      }
+    };
+
+    document.getElementById("addQ").onclick = async () => {
+      const text = document.getElementById("q-text").value;
+      const options = Array.from(document.querySelectorAll(".option")).map(o => o.value);
+      const correctIndex = parseInt(document.getElementById("correct").value);
+      if (!text || options.some(o => !o)) return alert("Lengkapi semua field!");
+      await addDoc(collection(db, "questions"), { text, options, correctIndex });
+      document.getElementById("q-text").value = "";
+      loadQuestions();
+    };
+
+    // === CRUD PESERTA ===
+    async function loadStudents() {
+      sList.innerHTML = "";
+      const snap = await getDocs(collection(db, "students"));
+      snap.forEach(d => {
+        const s = d.data();
+        sList.innerHTML += `
+          <tr>
+            <td>${s.name}</td>
+            <td>${s.email}</td>
+            <td>
+              <button class="btn btn-primary" onclick="editStudent('${d.id}', '${s.name}', '${s.email}')">Edit</button>
+              <button class="btn btn-danger" onclick="deleteStudent('${d.id}')">Hapus</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    window.deleteStudent = async (id) => {
+      if (confirm("Hapus peserta ini?")) {
+        await deleteDoc(doc(db, "students", id));
+        loadStudents();
+      }
+    };
+
+    window.editStudent = async (id, oldName, oldEmail) => {
+      const newName = prompt("Edit nama:", oldName);
+      const newEmail = prompt("Edit email:", oldEmail);
+      if (newName && newEmail) {
+        await updateDoc(doc(db, "students", id), { name: newName, email: newEmail });
+        loadStudents();
+      }
+    };
+
+    document.getElementById("addStudent").onclick = async () => {
+      const name = document.getElementById("s-name").value;
+      const email = document.getElementById("s-email").value;
+      if (!name || !email) return alert("Lengkapi nama dan email!");
+      await addDoc(collection(db, "students"), { name, email });
+      document.getElementById("s-name").value = "";
+      document.getElementById("s-email").value = "";
+      loadStudents();
+    };
+
+    // === HASIL UJIAN + EXPORT ===
+    async function loadResults() {
+      rList.innerHTML = "";
+      const snap = await getDocs(collection(db, "exam_results"));
+      snap.forEach(d => {
+        const r = d.data();
+        rList.innerHTML += `<tr><td>${r.name}</td><td>${r.email}</td><td>${r.score ?? "-"}</td></tr>`;
+      });
+    }
+
+    document.getElementById("exportBtn").onclick = async () => {
+      const snap = await getDocs(collection(db, "exam_results"));
+      let csv = "Nama,Email,Nilai\n";
+      snap.forEach(d => {
+        const r = d.data();
+        csv += `${r.name},${r.email},${r.score ?? ""}\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "hasil_ujian.csv";
+      a.click();
+    };
+
+    loadQuestions();
+    loadStudents();
+    loadResults();
+  </script>
 </body>
 </html>
