@@ -10,11 +10,18 @@
     .btn-primary { background: #6366f1; color: white; transition: 0.2s; }
     .btn-primary:hover { background: #4f46e5; }
     .input-field { border: 1px solid #d1d5db; padding: 0.5rem; border-radius: 0.5rem; }
-    .disabled { opacity: 0.5; pointer-events: none; }
+    .warning-banner {
+      position: fixed; top: 0; left: 0; right: 0;
+      background: #f87171; color: white; text-align: center;
+      padding: 0.5rem; font-weight: 600; display: none;
+      z-index: 50;
+    }
   </style>
 </head>
 
 <body class="bg-gradient-to-b from-indigo-50 to-white min-h-screen flex items-center justify-center font-sans">
+
+  <div class="warning-banner" id="warningBanner">⚠️ Jangan keluar dari layar ujian!</div>
 
   <div class="w-full max-w-3xl p-6">
     <!-- LOGIN / SIGNUP -->
@@ -47,13 +54,14 @@
         <input class="input-field w-full option" placeholder="Opsi D" />
       </div>
 
-      <label class="block text-sm font-medium text-gray-700 mb-1">Jawaban Benar (bisa lebih dari satu):</label>
-      <div id="multi-correct" class="flex gap-3 mb-4">
-        <label><input type="checkbox" value="0" /> A</label>
-        <label><input type="checkbox" value="1" /> B</label>
-        <label><input type="checkbox" value="2" /> C</label>
-        <label><input type="checkbox" value="3" /> D</label>
-      </div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Jawaban Benar:</label>
+      <select id="correct-option" class="input-field w-full mb-4">
+        <option value="">Pilih Jawaban Benar</option>
+        <option value="0">A</option>
+        <option value="1">B</option>
+        <option value="2">C</option>
+        <option value="3">D</option>
+      </select>
 
       <button id="add-question" class="btn-primary px-4 py-2 rounded w-full mb-3">Tambah Soal</button>
       <ul id="question-list" class="mt-4 text-sm text-gray-700 list-disc pl-5"></ul>
@@ -92,28 +100,19 @@
       collection, addDoc, getDocs, setDoc, doc,
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2"; 
+    const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2";
 
     const loginSec = document.getElementById("login-sec");
     const adminSec = document.getElementById("admin-sec");
     const studentSec = document.getElementById("student-sec");
     const msg = document.getElementById("msg");
     const timerEl = document.getElementById("timer");
+    const warningBanner = document.getElementById("warningBanner");
 
     let questions = [], currentIndex = 0, answers = {}, timer = 600, countdown;
+    let currentUserUid = null, currentUserEmail = null;
 
-    // Prevent Browsing (Anti-Cheat)
-    let warningCount = 0;
-    window.addEventListener("blur", () => {
-      warningCount++;
-      alert(`⚠️ Peringatan ${warningCount}: Jangan keluar dari layar ujian!`);
-      if (warningCount >= 3) {
-        alert("Ujian otomatis berakhir karena Anda keluar layar terlalu sering.");
-        location.reload();
-      }
-    });
-
-    // SIGN UP
+    // --- SIGN UP ---
     document.getElementById("showSignUp").onclick = () =>
       document.getElementById("signupBox").classList.toggle("hidden");
 
@@ -134,13 +133,15 @@
       }
     };
 
-    // LOGIN
+    // --- LOGIN ---
     document.getElementById("loginBtn").onclick = async () => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
       try {
         const userCred = await signInWithEmailAndPassword(auth, email, password);
         const uid = userCred.user.uid;
+        currentUserUid = uid;
+        currentUserEmail = email;
         loginSec.classList.add("hidden");
         if (uid === ADMIN_UID) {
           adminSec.classList.remove("hidden");
@@ -154,29 +155,30 @@
       }
     };
 
-    // ADMIN
+    // --- ADMIN MODE ---
     async function loadQuestions() {
       const qList = document.getElementById("question-list");
       qList.innerHTML = "";
       const snapshot = await getDocs(collection(db, "questions"));
       snapshot.forEach((docSnap) => {
         const q = docSnap.data();
-        qList.innerHTML += `<li>${q.text}</li>`;
+        const correctLetter = ["A", "B", "C", "D"][q.correctIndex];
+        qList.innerHTML += `<li>${q.text} (Benar: ${correctLetter})</li>`;
       });
 
       document.getElementById("add-question").onclick = async () => {
         const text = document.getElementById("q-text").value;
-        const options = Array.from(document.querySelectorAll(".option")).map((o) => o.value);
-        const correctIndices = Array.from(document.querySelectorAll("#multi-correct input:checked")).map(i => parseInt(i.value));
-        if (!text || options.some((o) => !o) || correctIndices.length === 0)
+        const options = Array.from(document.querySelectorAll(".option")).map(o => o.value.trim());
+        const correctIndex = parseInt(document.getElementById("correct-option").value);
+        if (!text || options.some(o => !o) || isNaN(correctIndex))
           return alert("Lengkapi semua field dan pilih jawaban benar!");
-        await addDoc(collection(db, "questions"), { text, options, correctIndices });
+        await addDoc(collection(db, "questions"), { text, options, correctIndex });
         alert("Soal berhasil ditambahkan!");
         loadQuestions();
       };
     }
 
-    // SISWA
+    // --- STUDENT MODE ---
     async function startExam(uid, email) {
       const snapshot = await getDocs(collection(db, "questions"));
       questions = snapshot.docs.map((d) => d.data());
@@ -184,10 +186,11 @@
         document.getElementById("q-body").innerHTML = "<p class='text-red-500'>Belum ada soal.</p>";
         return;
       }
-      // Randomize question order
-      questions = questions.sort(() => Math.random() - 0.5);
 
+      questions = questions.sort(() => Math.random() - 0.5);
       showQuestion();
+
+      // timer
       countdown = setInterval(() => {
         timer--;
         const m = Math.floor(timer / 60), s = timer % 60;
@@ -214,18 +217,16 @@
       qBody.textContent = `${currentIndex + 1}. ${q.text}`;
       qOpts.innerHTML = "";
       q.options.forEach((opt, i) => {
-        const checked = answers[currentIndex]?.includes(i) ? "checked" : "";
+        const checked = answers[currentIndex] === i ? "checked" : "";
         qOpts.innerHTML += `
           <label class="block border p-2 rounded cursor-pointer hover:bg-indigo-50">
-            <input type="checkbox" value="${i}" ${checked} class="mr-2"> ${opt}
+            <input type="radio" name="opt" value="${i}" ${checked} class="mr-2"> ${opt}
           </label>`;
       });
-      document.querySelectorAll("input[type='checkbox']").forEach((r) =>
+
+      document.querySelectorAll("input[name='opt']").forEach((r) =>
         r.addEventListener("change", (e) => {
-          const val = parseInt(e.target.value);
-          if (!answers[currentIndex]) answers[currentIndex] = [];
-          if (e.target.checked) answers[currentIndex].push(val);
-          else answers[currentIndex] = answers[currentIndex].filter((x) => x !== val);
+          answers[currentIndex] = parseInt(e.target.value);
         })
       );
     }
@@ -234,9 +235,7 @@
       clearInterval(countdown);
       let score = 0;
       questions.forEach((q, i) => {
-        const userAns = answers[i] || [];
-        const correct = JSON.stringify(userAns.sort()) === JSON.stringify(q.correctIndices.sort());
-        if (correct) score++;
+        if (answers[i] === q.correctIndex) score++;
       });
       await setDoc(doc(db, "exam_results", uid), { email, score, date: new Date().toISOString() });
       document.getElementById("result-card").classList.remove("hidden");
@@ -246,6 +245,18 @@
       );
       timerEl.textContent = "Selesai";
     }
+
+    // --- ANTI-CHEAT (AMAN DI IPHONE/HP) ---
+    let warnCount = 0;
+    window.addEventListener("blur", () => {
+      if (studentSec.classList.contains("hidden")) return;
+      warnCount++;
+      warningBanner.style.display = "block";
+      setTimeout(() => (warningBanner.style.display = "none"), 2000);
+      if (warnCount >= 3) {
+        finishExam(currentUserUid, currentUserEmail);
+      }
+    });
   </script>
 </body>
 </html>
