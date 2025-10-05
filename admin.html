@@ -11,12 +11,13 @@
     .btn-primary { background:#4f46e5; color:white; }
     .btn-danger { background:#ef4444; color:white; }
     .input { width:100%; padding:.5rem; border-radius:.5rem; border:1px solid #e5e7eb; }
-    table th, table td { padding:.5rem; border-bottom:1px solid #eef2ff; }
+    table th, table td { padding:.5rem; border-bottom:1px solid #eef2ff; text-align:left; }
+    .nav-btn.active { background:#4f46e5; color:white; }
   </style>
 </head>
 <body class="bg-indigo-50 min-h-screen p-6 font-sans">
 
-  <div class="max-w-4xl mx-auto">
+  <div class="max-w-5xl mx-auto">
     <h1 class="text-2xl font-bold text-indigo-700 mb-6">Dashboard Admin — Ujian Online</h1>
 
     <!-- LOGIN -->
@@ -31,235 +32,248 @@
       <p id="loginMsg" class="text-sm text-red-500 mt-2 hidden"></p>
     </div>
 
-    <!-- ADMIN PANEL (tersembunyi sampai login & autorizasi) -->
+    <!-- ADMIN PANEL -->
     <div id="adminPanel" class="card hidden">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-indigo-700">Kelola Soal</h2>
+        <div class="flex gap-2">
+          <button class="btn nav-btn active" data-target="soalPanel">Kelola Soal</button>
+          <button class="btn nav-btn" data-target="pesertaPanel">Peserta Didik</button>
+          <button class="btn nav-btn" data-target="hasilPanel">Hasil Nilai</button>
+        </div>
         <div id="adminInfo" class="text-sm text-gray-600"></div>
       </div>
 
-      <!-- FORM SOAL -->
-      <div class="mb-4">
-        <input id="qText" class="input mb-2" placeholder="Tulis pertanyaan..." />
-        <div id="optsWrap" class="space-y-2 mb-2">
-          <input class="input opt" placeholder="Opsi A" />
-          <input class="input opt" placeholder="Opsi B" />
-          <input class="input opt" placeholder="Opsi C" />
-          <input class="input opt" placeholder="Opsi D" />
+      <!-- PANEL SOAL -->
+      <div id="soalPanel">
+        <h2 class="text-lg font-semibold text-indigo-700 mb-3">Kelola Soal</h2>
+        <div class="mb-4">
+          <input id="qText" class="input mb-2" placeholder="Tulis pertanyaan..." />
+          <div id="optsWrap" class="space-y-2 mb-2">
+            <input class="input opt" placeholder="Opsi A" />
+            <input class="input opt" placeholder="Opsi B" />
+            <input class="input opt" placeholder="Opsi C" />
+            <input class="input opt" placeholder="Opsi D" />
+          </div>
+          <label class="block text-sm mb-1">Jawaban benar</label>
+          <select id="correctIdx" class="input mb-3">
+            <option value="0">Opsi A</option>
+            <option value="1">Opsi B</option>
+            <option value="2">Opsi C</option>
+            <option value="3">Opsi D</option>
+          </select>
+          <div class="flex gap-3">
+            <button id="btnSaveQ" class="btn btn-primary">Tambah Soal</button>
+            <button id="btnClear" class="btn">Bersihkan</button>
+          </div>
         </div>
-
-        <label class="block text-sm mb-1">Jawaban benar</label>
-        <select id="correctIdx" class="input mb-3">
-          <option value="0">Opsi A</option>
-          <option value="1">Opsi B</option>
-          <option value="2">Opsi C</option>
-          <option value="3">Opsi D</option>
-        </select>
-
-        <div class="flex gap-3">
-          <button id="btnSaveQ" class="btn btn-primary">Tambah Soal</button>
-          <button id="btnClear" class="btn">Bersihkan</button>
+        <div>
+          <h3 class="font-medium mb-2">Daftar Soal</h3>
+          <table class="w-full bg-white">
+            <thead><tr><th class="w-3/4">Pertanyaan</th><th>Aksi</th></tr></thead>
+            <tbody id="qList"></tbody>
+          </table>
         </div>
       </div>
 
-      <!-- LIST SOAL -->
-      <div>
-        <h3 class="font-medium mb-2">Daftar Soal</h3>
+      <!-- PANEL PESERTA -->
+      <div id="pesertaPanel" class="hidden">
+        <h2 class="text-lg font-semibold text-indigo-700 mb-3">Kelola Peserta Didik</h2>
+        <div class="mb-4">
+          <input id="studentName" class="input mb-2" placeholder="Nama siswa" />
+          <input id="studentEmail" class="input mb-2" placeholder="Email siswa" />
+          <div class="flex gap-3">
+            <button id="btnAddStudent" class="btn btn-primary">Tambah Peserta</button>
+          </div>
+        </div>
         <table class="w-full bg-white">
-          <thead><tr><th class="w-3/4">Pertanyaan</th><th>Aksi</th></tr></thead>
-          <tbody id="qList"></tbody>
+          <thead><tr><th>Nama</th><th>Email</th><th>Aksi</th></tr></thead>
+          <tbody id="studentList"></tbody>
+        </table>
+      </div>
+
+      <!-- PANEL HASIL -->
+      <div id="hasilPanel" class="hidden">
+        <h2 class="text-lg font-semibold text-indigo-700 mb-3">Hasil Nilai Siswa</h2>
+        <button id="btnExport" class="btn btn-primary mb-3">Export ke CSV</button>
+        <table class="w-full bg-white">
+          <thead><tr><th>Nama</th><th>Email</th><th>Skor</th><th>Tanggal</th></tr></thead>
+          <tbody id="hasilList"></tbody>
         </table>
       </div>
     </div>
   </div>
 
   <script type="module">
-    // gunakan firebaseConfig.js yang mengekspor { app, db, auth }
     import { app, db, auth } from './firebaseConfig.js';
-    import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-    import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import {
+      signInWithEmailAndPassword,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import {
+      collection, getDocs, addDoc, deleteDoc, doc, updateDoc
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    // GANTI dengan UID adminmu (persis sama seperti di Authentication -> Users)
     const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2";
 
-    // elemen UI
     const loginCard = document.getElementById('loginCard');
     const btnLogin = document.getElementById('btnLogin');
     const btnLogout = document.getElementById('btnLogout');
     const adminPanel = document.getElementById('adminPanel');
     const adminInfo = document.getElementById('adminInfo');
     const loginMsg = document.getElementById('loginMsg');
+    const navBtns = document.querySelectorAll('.nav-btn');
 
+    // ================== PANEL NAVIGATION ==================
+    navBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        navBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('#adminPanel > div[id$="Panel"]').forEach(p => p.classList.add('hidden'));
+        document.getElementById(btn.dataset.target).classList.remove('hidden');
+      });
+    });
+
+    function showError(msg, err) {
+      console.error(msg, err);
+      alert(msg + (err ? "\\n" + (err.message || err) : ""));
+    }
+
+    onAuthStateChanged(auth, user => {
+      if (user && user.uid === ADMIN_UID) {
+        loginCard.classList.add('hidden');
+        adminPanel.classList.remove('hidden');
+        adminInfo.textContent = `Login sebagai: ${user.email}`;
+        btnLogout.classList.remove('hidden');
+        loadQuestions();
+        loadStudents();
+        loadResults();
+      } else {
+        loginCard.classList.remove('hidden');
+        adminPanel.classList.add('hidden');
+      }
+    });
+
+    btnLogin.addEventListener('click', async () => {
+      const email = document.getElementById('adminEmail').value;
+      const pass = document.getElementById('adminPass').value;
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err) { showError("Login gagal", err); }
+    });
+
+    btnLogout.addEventListener('click', async () => { await signOut(auth); });
+
+    // ================== KELOLA SOAL ==================
     const qText = document.getElementById('qText');
     const optsWrap = document.getElementById('optsWrap');
     const correctIdx = document.getElementById('correctIdx');
     const btnSaveQ = document.getElementById('btnSaveQ');
     const btnClear = document.getElementById('btnClear');
     const qList = document.getElementById('qList');
+    let editingId = null;
 
-    let editingId = null; // null => create mode; otherwise update mode
-
-    // helper: tampilkan error
-    function showError(msg, err) {
-      console.error(msg, err);
-      alert(msg + (err ? "\\n\\n" + (err.message || err) : ""));
-    }
-
-    // 1) auth state
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        // hanya tampilkan panel kalau UID cocok admin
-        if (user.uid === ADMIN_UID) {
-          loginCard.classList.add('hidden');
-          adminPanel.classList.remove('hidden');
-          adminInfo.textContent = `Signed in: ${user.email}`;
-          btnLogout.classList.remove('hidden');
-          loadQuestions();
-        } else {
-          // bukan admin
-          loginMsg.textContent = "Akun ini bukan admin — akses ditolak.";
-          loginMsg.classList.remove('hidden');
-          btnLogout.classList.remove('hidden');
-          // sign out supaya tidak tetap login
-          signOut(auth);
-        }
-      } else {
-        loginCard.classList.remove('hidden');
-        adminPanel.classList.add('hidden');
-        adminInfo.textContent = "";
-        btnLogout.classList.add('hidden');
-        loginMsg.classList.add('hidden');
-      }
-    });
-
-    // 2) login handler
-    btnLogin.addEventListener('click', async () => {
-      const email = document.getElementById('adminEmail').value.trim();
-      const pass  = document.getElementById('adminPass').value.trim();
-      if (!email || !pass) return alert('Masukkan email & password admin!');
-      try {
-        await signInWithEmailAndPassword(auth, email, pass);
-        // onAuthStateChanged akan men-trigger UI
-      } catch (err) {
-        showError("Login gagal:", err);
-      }
-    });
-
-    btnLogout.addEventListener('click', async () => {
-      try {
-        await signOut(auth);
-      } catch (err) {
-        showError("Logout gagal:", err);
-      }
-    });
-
-    // 3) load questions
     async function loadQuestions() {
-      try {
-        qList.innerHTML = '<tr><td colspan="2" class="py-2 text-sm text-gray-500">Memuat...</td></tr>';
-        const snap = await getDocs(collection(db, 'questions'));
-        if (snap.empty) {
-          qList.innerHTML = '<tr><td colspan="2" class="py-2 text-sm text-gray-500">Belum ada soal.</td></tr>';
-          return;
-        }
-        qList.innerHTML = '';
-        snap.forEach(docSnap => {
-          const d = docSnap.data();
-          const id = docSnap.id;
-          const correctText = (d.options && d.options[d.correctIndex]) ? d.options[d.correctIndex] : '-';
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td class="py-2">${escapeHtml(d.text)}</td>
-            <td class="py-2">
-              <button data-id="${id}" data-action="edit" class="btn btn-primary mr-2 text-xs">Edit</button>
-              <button data-id="${id}" data-action="delete" class="btn btn-danger text-xs">Hapus</button>
-            </td>`;
-          qList.appendChild(tr);
-        });
+      qList.innerHTML = "<tr><td colspan='2'>Memuat...</td></tr>";
+      const snap = await getDocs(collection(db, 'questions'));
+      qList.innerHTML = "";
+      snap.forEach(docSnap => {
+        const q = docSnap.data();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${q.text}</td>
+          <td>
+            <button class='btn btn-primary text-xs' data-id='${docSnap.id}' data-action='edit'>Edit</button>
+            <button class='btn btn-danger text-xs' data-id='${docSnap.id}' data-action='delete'>Hapus</button>
+          </td>`;
+        qList.appendChild(tr);
+      });
 
-        // pasang listener aksi (delegation)
-        qList.querySelectorAll('button').forEach(btn => {
-          btn.onclick = async (e) => {
-            const id = e.target.dataset.id;
-            const action = e.target.dataset.action;
-            if (action === 'delete') {
-              if (!confirm('Yakin ingin menghapus soal ini?')) return;
-              try {
-                await deleteDoc(doc(db, 'questions', id));
-                loadQuestions();
-              } catch (err) {
-                showError('Gagal menghapus soal', err);
-              }
-            } else if (action === 'edit') {
-              // ambil data lengkap dari dok
-              try {
-                const snapSingle = (await getDocs(collection(db, 'questions'))).docs.find(s => s.id === id);
-                // better: use doc/ getDoc, but using getDocs for simplicity
-                if (!snapSingle) return alert('Dokumen soal tidak ditemukan');
-                const data = snapSingle.data();
-                editingId = id;
-                qText.value = data.text || '';
-                const inputs = optsWrap.querySelectorAll('.opt');
-                (data.options || []).forEach((v, i) => {
-                  if (inputs[i]) inputs[i].value = v;
-                });
-                correctIdx.value = data.correctIndex ?? 0;
-                btnSaveQ.textContent = 'Perbarui Soal';
-              } catch (err) {
-                showError('Gagal memuat soal untuk edit', err);
-              }
-            }
-          };
-        });
-      } catch (err) {
-        showError('Gagal memuat daftar soal', err);
-      }
+      qList.querySelectorAll('button').forEach(btn=>{
+        btn.onclick = async()=>{
+          const id = btn.dataset.id;
+          if(btn.dataset.action==="delete"){
+            if(confirm("Hapus soal ini?")) await deleteDoc(doc(db,"questions",id));
+            loadQuestions();
+          }
+        };
+      });
     }
 
-    // helper escape
-    function escapeHtml(s='') {
-      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    btnSaveQ.onclick = async()=>{
+      const text = qText.value;
+      const options = Array.from(optsWrap.querySelectorAll(".opt")).map(i=>i.value);
+      const correct = parseInt(correctIdx.value);
+      if(!text || options.some(o=>!o)) return alert("Lengkapi semua bidang");
+      await addDoc(collection(db,"questions"),{text,options,correctIndex:correct});
+      alert("Soal ditambahkan");
+      loadQuestions();
+    };
+
+    btnClear.onclick = ()=>{ qText.value=""; optsWrap.querySelectorAll(".opt").forEach(i=>i.value=""); };
+
+    // ================== KELOLA PESERTA ==================
+    const studentList = document.getElementById('studentList');
+    const btnAddStudent = document.getElementById('btnAddStudent');
+    const studentName = document.getElementById('studentName');
+    const studentEmail = document.getElementById('studentEmail');
+
+    async function loadStudents() {
+      studentList.innerHTML = "<tr><td colspan='3'>Memuat...</td></tr>";
+      const snap = await getDocs(collection(db,'students'));
+      studentList.innerHTML = "";
+      snap.forEach(d=>{
+        const s = d.data();
+        studentList.innerHTML += `<tr><td>${s.name}</td><td>${s.email}</td>
+          <td><button class='btn btn-danger text-xs' data-id='${d.id}'>Hapus</button></td></tr>`;
+      });
+      studentList.querySelectorAll('button').forEach(b=>{
+        b.onclick = async()=>{
+          await deleteDoc(doc(db,'students',b.dataset.id));
+          loadStudents();
+        };
+      });
     }
 
-    // 4) save / update soal
-    btnSaveQ.addEventListener('click', async () => {
-      const text = qText.value.trim();
-      const options = Array.from(optsWrap.querySelectorAll('.opt')).map(i => i.value.trim());
-      const correct = parseInt(correctIdx.value || '0');
+    btnAddStudent.onclick = async()=>{
+      const name = studentName.value.trim();
+      const email = studentEmail.value.trim();
+      if(!name || !email) return alert("Isi nama & email");
+      await addDoc(collection(db,'students'),{name,email});
+      alert("Peserta ditambahkan");
+      studentName.value=''; studentEmail.value='';
+      loadStudents();
+    };
 
-      if (!text || options.some(o => !o)) return alert('Lengkapi teks soal dan semua opsi');
+    // ================== HASIL NILAI ==================
+    const hasilList = document.getElementById('hasilList');
+    const btnExport = document.getElementById('btnExport');
 
-      try {
-        if (editingId) {
-          // update
-          await updateDoc(doc(db, 'questions', editingId), { text, options, correctIndex: correct });
-          editingId = null;
-          btnSaveQ.textContent = 'Tambah Soal';
-          alert('Soal berhasil diperbarui');
-        } else {
-          // add
-          await addDoc(collection(db, 'questions'), { text, options, correctIndex: correct });
-          alert('Soal berhasil ditambahkan');
-        }
-        // clear & reload
-        qText.value = '';
-        optsWrap.querySelectorAll('.opt').forEach(i => i.value = '');
-        correctIdx.value = '0';
-        loadQuestions();
-      } catch (err) {
-        showError('Gagal menyimpan soal', err);
-      }
-    });
+    async function loadResults(){
+      hasilList.innerHTML="<tr><td colspan='4'>Memuat...</td></tr>";
+      const snap = await getDocs(collection(db,'results'));
+      hasilList.innerHTML="";
+      snap.forEach(d=>{
+        const r = d.data();
+        const date = r.date ? new Date(r.date).toLocaleString() : '-';
+        hasilList.innerHTML += `<tr><td>${r.name||'-'}</td><td>${r.email||'-'}</td><td>${r.score||0}</td><td>${date}</td></tr>`;
+      });
+    }
 
-    btnClear.addEventListener('click', () => {
-      editingId = null;
-      qText.value = '';
-      optsWrap.querySelectorAll('.opt').forEach(i => i.value = '');
-      correctIdx.value = '0';
-      btnSaveQ.textContent = 'Tambah Soal';
-    });
-
-    // initial load (tidak memanggil loadQuestions di sini — tunggu auth)
+    // export CSV
+    btnExport.onclick = async()=>{
+      const snap = await getDocs(collection(db,'results'));
+      let csv = "Nama,Email,Skor,Tanggal\n";
+      snap.forEach(d=>{
+        const r=d.data();
+        csv += `"${r.name||''}","${r.email||''}","${r.score||0}","${r.date||''}"\n`;
+      });
+      const blob = new Blob([csv],{type:"text/csv"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download="hasil_nilai.csv"; a.click();
+      URL.revokeObjectURL(url);
+    };
   </script>
 </body>
 </html>
