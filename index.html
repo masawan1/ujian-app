@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Ujian Online Interaktif</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
   <style>
     .card { background: white; padding: 1.5rem; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
     .btn-primary { background: #6366f1; color: white; transition: 0.2s; }
@@ -78,40 +78,40 @@
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import { auth, db } from "./firebaseConfig.js";
+    import {
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import {
+      collection,
+      addDoc,
+      getDocs,
+      setDoc,
+      doc,
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    // 🔥 KONFIGURASI FIREBASE
-    const firebaseConfig = {
-      apiKey: "AIzaSyATMc_z-Q2qNsojqsl58AN14hL5Ldf4k3U",
-      authDomain: "ujian-online-f9fc2.firebaseapp.com",
-      projectId: "ujian-online-f9fc2"
-    };
-    const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2"; // ganti dengan UID admin kamu
+    const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2"; // UID Admin Firebase Auth kamu
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    // === DOM ELEMENTS ===
+    // DOM Elements
     const loginSec = document.getElementById("login-sec");
     const adminSec = document.getElementById("admin-sec");
     const studentSec = document.getElementById("student-sec");
     const msg = document.getElementById("msg");
     const timerEl = document.getElementById("timer");
 
-    let questions = [], currentIndex = 0, answers = {}, timer = 600;
+    let questions = [], currentIndex = 0, answers = {}, timer = 600, countdown;
 
-    // === SIGN UP ===
-    document.getElementById("showSignUp").onclick = () => {
+    // SIGN UP
+    document.getElementById("showSignUp").onclick = () =>
       document.getElementById("signupBox").classList.toggle("hidden");
-    };
+
     document.getElementById("signUpBtn").onclick = async () => {
       const name = document.getElementById("nameSignUp").value;
       const email = document.getElementById("emailSignUp").value;
       const password = document.getElementById("passwordSignUp").value;
-      if (!name || !email || !password) return msg.textContent = "Lengkapi semua data!";
+      if (!name || !email || !password)
+        return (msg.textContent = "Lengkapi semua data!");
       try {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         await setDoc(doc(db, "students", cred.user.uid), { name, email });
@@ -123,7 +123,7 @@
       }
     };
 
-    // === LOGIN ===
+    // LOGIN
     document.getElementById("loginBtn").onclick = async () => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
@@ -143,44 +143,46 @@
       }
     };
 
-    // === ADMIN ===
+    // ADMIN
     async function loadQuestions() {
       const qList = document.getElementById("question-list");
       qList.innerHTML = "";
       const snapshot = await getDocs(collection(db, "questions"));
-      snapshot.forEach(doc => {
-        const q = doc.data();
+      snapshot.forEach((docSnap) => {
+        const q = docSnap.data();
         qList.innerHTML += `<li>${q.text}</li>`;
       });
 
       document.getElementById("add-question").onclick = async () => {
         const text = document.getElementById("q-text").value;
-        const options = Array.from(document.querySelectorAll(".option")).map(o => o.value);
-        const correctIndex = parseInt(document.getElementById("correct-index").value);
-        if (!text || options.some(o => !o)) return alert("Isi semua field!");
+        const options = Array.from(
+          document.querySelectorAll(".option")
+        ).map((o) => o.value);
+        const correctIndex = parseInt(
+          document.getElementById("correct-index").value
+        );
+        if (!text || options.some((o) => !o)) return alert("Isi semua field!");
         await addDoc(collection(db, "questions"), { text, options, correctIndex });
         alert("Soal berhasil ditambahkan!");
         loadQuestions();
       };
     }
 
-    // === SISWA ===
+    // SISWA
     async function startExam(uid, email) {
-      const qBody = document.getElementById("q-body");
-      const qOpts = document.getElementById("q-opts");
       const snapshot = await getDocs(collection(db, "questions"));
-      questions = snapshot.docs.map(doc => doc.data());
+      questions = snapshot.docs.map((d) => d.data());
       if (!questions.length) {
-        qBody.innerHTML = "<p class='text-red-500'>Belum ada soal.</p>";
+        document.getElementById("q-body").innerHTML =
+          "<p class='text-red-500'>Belum ada soal.</p>";
         return;
       }
       showQuestion();
 
-      // Timer
-      const countdown = setInterval(() => {
+      countdown = setInterval(() => {
         timer--;
         const m = Math.floor(timer / 60), s = timer % 60;
-        timerEl.textContent = `${m}:${s.toString().padStart(2,"0")}`;
+        timerEl.textContent = `${m}:${s.toString().padStart(2, "0")}`;
         if (timer <= 0) {
           clearInterval(countdown);
           finishExam(uid, email);
@@ -205,24 +207,32 @@
       q.options.forEach((opt, i) => {
         const checked = answers[currentIndex] === i ? "checked" : "";
         qOpts.innerHTML += `
-          <label class="block border p-2 rounded cursor-pointer">
+          <label class="block border p-2 rounded cursor-pointer hover:bg-indigo-50">
             <input type="radio" name="opt" value="${i}" ${checked} class="mr-2"> ${opt}
           </label>`;
       });
-      document.querySelectorAll("input[name='opt']").forEach(radio => {
-        radio.addEventListener("change", e => { answers[currentIndex] = parseInt(e.target.value); });
-      });
+      document.querySelectorAll("input[name='opt']").forEach((r) =>
+        r.addEventListener("change", (e) => (answers[currentIndex] = parseInt(e.target.value)))
+      );
     }
 
     async function finishExam(uid, email) {
+      clearInterval(countdown);
       let score = 0;
       questions.forEach((q, i) => {
         if (answers[i] === q.correctIndex) score++;
       });
-      await setDoc(doc(db, "exam_results", uid), { email, score, date: new Date().toISOString() });
+      await setDoc(doc(db, "exam_results", uid), {
+        email,
+        score,
+        date: new Date().toISOString(),
+      });
       document.getElementById("result-card").classList.remove("hidden");
-      document.getElementById("result-text").textContent = `Nilai Akhir Kamu: ${score} dari ${questions.length}`;
-      ["q-body", "q-opts", "prev-btn", "next-btn", "submit-btn"].forEach(id => document.getElementById(id).classList.add("hidden"));
+      document.getElementById("result-text").textContent =
+        `Nilai Akhir Kamu: ${score} dari ${questions.length}`;
+      ["q-body", "q-opts", "prev-btn", "next-btn", "submit-btn"].forEach(id =>
+        document.getElementById(id).classList.add("hidden")
+      );
       timerEl.textContent = "Selesai";
     }
   </script>
