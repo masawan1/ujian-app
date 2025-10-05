@@ -10,7 +10,6 @@
     .btn-primary { background: #6366f1; color: white; transition: 0.2s; }
     .btn-primary:hover { background: #4f46e5; }
     .input-field { border: 1px solid #d1d5db; padding: 0.5rem; border-radius: 0.5rem; }
-    .disabled { opacity: 0.5; pointer-events: none; }
   </style>
 </head>
 
@@ -23,7 +22,7 @@
       <input id="email" class="input-field w-full mb-2" placeholder="Email" type="email" />
       <input id="password" class="input-field w-full mb-4" placeholder="Password" type="password" />
       <button id="loginBtn" class="btn-primary w-full py-2 rounded mb-2">Masuk</button>
-      <p class="text-sm text-gray-600">Belum punya akun? 
+      <p class="text-sm text-gray-600">Belum punya akun?
         <span id="showSignUp" class="text-indigo-600 hover:underline cursor-pointer">Daftar</span>
       </p>
 
@@ -40,6 +39,14 @@
     <div id="admin-sec" class="hidden card mt-4">
       <h2 class="text-xl font-semibold text-indigo-700 mb-4">Dashboard Admin</h2>
       <input id="q-text" class="input-field w-full mb-2" placeholder="Tulis pertanyaan..." />
+
+      <label class="block text-sm font-medium text-gray-700 mb-1">Tipe Soal:</label>
+      <select id="q-type" class="input-field w-full mb-3">
+        <option value="truefalse">Benar / Salah</option>
+        <option value="single">Pilihan Tunggal</option>
+        <option value="multiple">Pilihan Ganda</option>
+      </select>
+
       <div id="opts-container" class="space-y-2 mb-3">
         <div class="flex gap-2">
           <input class="input-field flex-1 option" placeholder="Opsi A" />
@@ -59,7 +66,7 @@
         </div>
       </div>
 
-      <p class="text-sm text-gray-600 mb-3">Centang satu atau lebih kotak untuk memilih jawaban benar.</p>
+      <p class="text-sm text-gray-600 mb-3">Centang satu atau lebih jawaban benar.</p>
       <button id="add-question" class="btn-primary px-4 py-2 rounded w-full mb-3">Tambah Soal</button>
       <ul id="question-list" class="mt-4 text-sm text-gray-700 list-disc pl-5"></ul>
     </div>
@@ -89,64 +96,47 @@
 
   <script type="module">
     import { auth, db } from "./firebaseConfig.js";
-    import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-    import { collection, addDoc, getDocs, setDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import {
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import {
+      collection, addDoc, getDocs, setDoc, doc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2"; 
+    const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2";
 
-    // DOM
     const loginSec = document.getElementById("login-sec");
     const adminSec = document.getElementById("admin-sec");
     const studentSec = document.getElementById("student-sec");
     const msg = document.getElementById("msg");
-    const timerEl = document.getElementById("timer");
     const qList = document.getElementById("question-list");
+    const timerEl = document.getElementById("timer");
 
-    // state
-    let questions = [], currentIndex = 0, answers = {}, timer = 600, countdown;
-    // questions will hold objects: { id, text, options:[], correctIndices:[] }
+    let questions = [], answers = {}, currentIndex = 0, timer = 600, countdown;
+    let currentUserUid = null, currentUserEmail = null;
 
-    // --- ANTI-BROWSING (simple) ---
-    let warningCount = 0;
-    window.addEventListener("blur", () => {
-      // ignore if admin editing
-      if (!studentSec.classList.contains("hidden")) {
-        warningCount++;
-        alert(`⚠️ Peringatan ${warningCount}: Jangan keluar dari layar ujian!`);
-        if (warningCount >= 3) {
-          alert("Ujian otomatis berakhir karena Anda keluar layar terlalu sering.");
-          // finish early
-          if (typeof finishExam === 'function') {
-            finishExam(currentUserUid, currentUserEmail);
-          } else location.reload();
-        }
-      }
-    });
+    // Toggle signup
+    document.getElementById("showSignUp").onclick = () =>
+      document.getElementById("signupBox").classList.toggle("hidden");
 
-    // --- SIGN UP ---
-    document.getElementById("showSignUp").onclick = () => document.getElementById("signupBox").classList.toggle("hidden");
-
+    // Sign up
     document.getElementById("signUpBtn").onclick = async () => {
-      const name = document.getElementById("nameSignUp").value?.trim();
-      const email = document.getElementById("emailSignUp").value?.trim();
-      const password = document.getElementById("passwordSignUp").value;
-      if (!name || !email || !password) return (msg.textContent = "Lengkapi semua data!");
+      const name = document.getElementById("nameSignUp").value.trim();
+      const email = document.getElementById("emailSignUp").value.trim();
+      const password = document.getElementById("passwordSignUp").value.trim();
+      if (!name || !email || !password) return msg.textContent = "Lengkapi semua data!";
       try {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         await setDoc(doc(db, "students", cred.user.uid), { name, email, createdAt: serverTimestamp() });
-        msg.textContent = "Pendaftaran berhasil, silakan login.";
-        msg.classList.remove("text-red-500");
+        msg.textContent = "Pendaftaran berhasil! Silakan login.";
         msg.classList.add("text-green-600");
       } catch (err) {
         msg.textContent = "Gagal daftar: " + err.message;
       }
     };
 
-    // track current user for anti-cheat finish
-    let currentUserUid = null;
-    let currentUserEmail = null;
-
-    // --- LOGIN ---
+    // Login
     document.getElementById("loginBtn").onclick = async () => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
@@ -156,128 +146,70 @@
         currentUserUid = uid;
         currentUserEmail = email;
         loginSec.classList.add("hidden");
-        // admin
         if (uid === ADMIN_UID) {
           adminSec.classList.remove("hidden");
-          studentSec.classList.add("hidden");
-          await loadQuestionsAdmin();
+          loadQuestionsAdmin();
         } else {
-          adminSec.classList.add("hidden");
           studentSec.classList.remove("hidden");
-          await startExam(uid, email);
+          startExam(uid, email);
         }
       } catch (err) {
         msg.textContent = "Login gagal: " + err.message;
       }
     };
 
-    // ---------- ADMIN: LOAD & ADD QUESTIONS ----------
+    // Admin: Tambah soal
     async function loadQuestionsAdmin() {
-      qList.innerHTML = "<li>Memuat...</li>";
-      try {
-        const snap = await getDocs(collection(db, "questions"));
-        qList.innerHTML = "";
-        snap.forEach(d => {
-          const data = d.data();
-          const li = document.createElement('li');
-          // show which indices are correct
-          const corr = (data.correctIndices || []).map(i => String.fromCharCode(65 + i)).join(', ');
-          li.textContent = `${data.text} ${corr ? `(Benar: ${corr})` : ''}`;
-          qList.appendChild(li);
-        });
-      } catch (e) {
-        qList.innerHTML = "<li>Error memuat soal (cek console)</li>";
-        console.error(e);
-      }
+      qList.innerHTML = "";
+      const snap = await getDocs(collection(db, "questions"));
+      snap.forEach(d => {
+        const q = d.data();
+        const corr = (q.correctIndices || []).map(i => String.fromCharCode(65 + i)).join(", ");
+        qList.innerHTML += `<li>${q.text} (${q.type}) ${corr ? "Benar: " + corr : ""}</li>`;
+      });
 
-      // wire add button (ensure single handler)
-      const addBtn = document.getElementById("add-question");
-      addBtn.onclick = null;
-      addBtn.addEventListener("click", async () => {
-        const text = document.getElementById("q-text").value?.trim();
-        const options = Array.from(document.querySelectorAll(".option")).map(i => i.value?.trim());
-        const correctIndices = Array.from(document.querySelectorAll(".multi-correct:checked")).map(c => parseInt(c.value));
-        if (!text || options.some(o => !o) || correctIndices.length === 0) {
-          return alert("Lengkapi semua field dan pilih jawaban benar!");
-        }
-        try {
-          await addDoc(collection(db, "questions"), {
-            text,
-            options,
-            correctIndices,
-            createdAt: serverTimestamp()
-          });
-          // reset form
-          document.getElementById("q-text").value = "";
-          document.querySelectorAll(".option").forEach(i => i.value = "");
-          document.querySelectorAll(".multi-correct").forEach(c => c.checked = false);
-          alert("Soal berhasil ditambahkan!");
-          await loadQuestionsAdmin();
-        } catch (e) {
-          console.error(e);
-          alert("Gagal menambahkan soal: " + e.message);
-        }
-      }, { once: false });
+      document.getElementById("add-question").onclick = async () => {
+        const text = document.getElementById("q-text").value.trim();
+        const type = document.getElementById("q-type").value;
+        let options = Array.from(document.querySelectorAll(".option")).map(o => o.value.trim());
+        let correctIndices = Array.from(document.querySelectorAll(".multi-correct:checked")).map(c => parseInt(c.value));
+        if (type === "truefalse") options = ["Benar", "Salah"];
+        if (!text || options.some(o => !o) || correctIndices.length === 0) return alert("Lengkapi semua field!");
+
+        await addDoc(collection(db, "questions"), { text, type, options, correctIndices, createdAt: serverTimestamp() });
+        alert("Soal ditambahkan!");
+        loadQuestionsAdmin();
+      };
     }
 
-    // ---------- STUDENT: START EXAM ----------
+    // Student: Ujian
     async function startExam(uid, email) {
-      try {
-        const snap = await getDocs(collection(db, "questions"));
-        // map with id and default fields
-        questions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      } catch (e) {
-        console.error(e);
-        document.getElementById("q-body").innerHTML = "<p class='text-red-500'>Gagal memuat soal.</p>";
-        return;
-      }
-
+      const snap = await getDocs(collection(db, "questions"));
+      questions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       if (!questions.length) {
-        document.getElementById("q-body").innerHTML = "<p class='text-red-500'>Belum ada soal.</p>";
+        document.getElementById("q-body").innerHTML = "<p>Belum ada soal.</p>";
         return;
       }
-
-      // shuffle questions order per user
-      questions = shuffleArray(questions);
-
-      // reset state
       currentIndex = 0;
-      answers = {};
-      warningCount = 0;
-      timer = 600; // seconds, adjust if perlu
-
       renderQuestion();
 
-      // ensure previous interval cleared
       if (countdown) clearInterval(countdown);
       countdown = setInterval(() => {
         timer--;
         const m = Math.floor(timer / 60), s = timer % 60;
         timerEl.textContent = `${m}:${s.toString().padStart(2, "0")}`;
-        if (timer <= 0) {
-          clearInterval(countdown);
-          finishExam(uid, email);
-        }
+        if (timer <= 0) finishExam(uid, email);
       }, 1000);
 
-      // navigation
       document.getElementById("next-btn").onclick = () => {
-        if (currentIndex < questions.length - 1) {
-          currentIndex++;
-          renderQuestion();
-        }
+        if (currentIndex < questions.length - 1) { currentIndex++; renderQuestion(); }
       };
       document.getElementById("prev-btn").onclick = () => {
-        if (currentIndex > 0) {
-          currentIndex--;
-          renderQuestion();
-        }
+        if (currentIndex > 0) { currentIndex--; renderQuestion(); }
       };
-      // submit
       document.getElementById("submit-btn").onclick = () => finishExam(uid, email);
     }
 
-    // render current question (student view)
     function renderQuestion() {
       const q = questions[currentIndex];
       const qBody = document.getElementById("q-body");
@@ -285,83 +217,50 @@
       qBody.textContent = `${currentIndex + 1}. ${q.text}`;
       qOpts.innerHTML = "";
 
-      // create checkbox list scoped inside q-opts
-      (q.options || []).forEach((opt, i) => {
-        // each checkbox has data-index (option original index)
-        const idInput = `opt-${currentIndex}-${i}`;
-        const checked = Array.isArray(answers[currentIndex]) && answers[currentIndex].includes(i) ? "checked" : "";
-        const label = document.createElement('label');
-        label.className = "block border p-2 rounded cursor-pointer hover:bg-indigo-50";
-        label.innerHTML = `<input id="${idInput}" data-opt-index="${i}" type="checkbox" ${checked} class="mr-2"> ${escapeHtml(opt)}`;
-        qOpts.appendChild(label);
+      if (q.type === "truefalse") q.options = ["Benar", "Salah"];
+
+      q.options.forEach((opt, i) => {
+        const checked = answers[currentIndex]?.includes(i) ? "checked" : "";
+        const inputType = q.type === "multiple" ? "checkbox" : "radio";
+        qOpts.innerHTML += `
+          <label class="block border p-2 rounded cursor-pointer">
+            <input type="${inputType}" name="opt" value="${i}" ${checked} class="mr-2"> ${opt}
+          </label>`;
       });
 
-      // attach single delegated listener for q-opts to avoid stacking listeners
-      // remove previous if any (we'll replace by setting onproperty)
-      qOpts.onclick = (e) => {
-        const target = e.target;
-        if (target && target.dataset && target.dataset.optIndex !== undefined) {
-          const optIdx = parseInt(target.dataset.optIndex);
-          if (!Array.isArray(answers[currentIndex])) answers[currentIndex] = [];
-          if (target.checked) {
-            if (!answers[currentIndex].includes(optIdx)) answers[currentIndex].push(optIdx);
+      qOpts.querySelectorAll("input").forEach(input => {
+        input.addEventListener("change", e => {
+          if (q.type === "multiple") {
+            if (!answers[currentIndex]) answers[currentIndex] = [];
+            if (e.target.checked) answers[currentIndex].push(parseInt(e.target.value));
+            else answers[currentIndex] = answers[currentIndex].filter(v => v !== parseInt(e.target.value));
           } else {
-            answers[currentIndex] = answers[currentIndex].filter(x => x !== optIdx);
+            answers[currentIndex] = [parseInt(e.target.value)];
           }
-        }
-      };
+        });
+      });
     }
 
-    // finishExam: compare user's answers to correctIndices as sets (order agnostic)
     async function finishExam(uid, email) {
       if (countdown) clearInterval(countdown);
-      // compute score: +1 per question only when sets exactly match
       let score = 0;
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
-        const userAns = Array.isArray(answers[i]) ? Array.from(new Set(answers[i])) : [];
-        const corr = Array.isArray(q.correctIndices) ? Array.from(new Set(q.correctIndices)) : [];
-        // compare as sets: same length and every element exists in other
+        const userAns = answers[i] || [];
+        const corr = q.correctIndices || [];
         if (userAns.length === corr.length && userAns.every(a => corr.includes(a))) score++;
       }
 
-      // try save result to exam_results collection (document id = uid)
-      try {
-        await setDoc(doc(db, "exam_results", uid), {
-          uid,
-          email,
-          score,
-          total: questions.length,
-          date: new Date().toISOString()
-        });
-      } catch (e) {
-        console.error("Gagal menyimpan hasil:", e);
-        alert("Gagal menyimpan hasil ujian (cek console).");
-      }
+      await setDoc(doc(db, "exam_results", uid), {
+        uid, email, score, total: questions.length, date: new Date().toISOString()
+      });
 
       document.getElementById("result-card").classList.remove("hidden");
-      document.getElementById("result-text").textContent = `Nilai Akhir Kamu: ${score} dari ${questions.length}`;
+      document.getElementById("result-text").textContent = `Nilai Kamu: ${score} dari ${questions.length}`;
       ["q-body", "q-opts", "prev-btn", "next-btn", "submit-btn"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.add("hidden");
+        document.getElementById(id).classList.add("hidden");
       });
-      timerEl.textContent = "Selesai";
     }
-
-    // ------------- Helpers -------------
-    function shuffleArray(arr) {
-      // Fisher-Yates
-      const a = arr.slice();
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    }
-    function escapeHtml(s='') {
-      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
   </script>
 </body>
 </html>
