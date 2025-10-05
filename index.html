@@ -49,5 +49,40 @@
     </div>
   </div>
 
+  <h2>Login Siswa</h2>
+<input id="email" placeholder="Email" />
+<input id="password" type="password" placeholder="Password" />
+<button id="loginBtn">Masuk</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+document.getElementById("loginBtn").onclick = () => {
+  const email = emailInput.value;
+  const password = passwordInput.value;
+
+  signInWithEmailAndPassword(auth, email, password)
+    .then(async (userCred) => {
+      alert("Login berhasil!");
+      // Ambil soal dari Firestore
+      const qSnap = await getDocs(collection(db, "questions"));
+      qSnap.forEach((doc) => console.log(doc.data()));
+    })
+    .catch((err) => alert("Login gagal: " + err.message));
+};
+</script>
+
+
 </body>
 </html>
