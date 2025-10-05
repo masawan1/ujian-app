@@ -1,74 +1,61 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin Dashboard - Ujian Online</title>
-
-  <!-- Tailwind CDN -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin | Cloudy Edu</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
   <script type="module" src="firebaseConfig.js"></script>
   <script type="module" src="admin.js" defer></script>
 </head>
-<body class="bg-gradient-to-b from-indigo-50 to-white min-h-screen">
 
-  <div class="max-w-5xl mx-auto p-6">
-    <header class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-indigo-700">Admin Dashboard - Ujian Online</h1>
-      <div id="admin-actions" class="space-x-3">
-        <span id="admin-email" class="text-sm text-gray-600"></span>
-        <button id="btn-logout" class="btn-primary px-4 py-2 rounded-lg hidden">Logout</button>
-      </div>
-    </header>
+<body class="bg-gradient-to-b from-indigo-100 to-white min-h-screen flex items-center justify-center">
 
-    <!-- LOGIN CARD -->
-    <div id="login-card" class="card max-w-md mx-auto">
-      <h2 class="text-lg font-semibold text-indigo-600 mb-3">Login Admin</h2>
-      <input id="admin-email-input" class="input-field w-full mb-2" placeholder="Email admin" />
-      <input id="admin-pass-input" class="input-field w-full mb-4" placeholder="Password" type="password" />
-      <div class="flex gap-2">
-        <button id="btn-login" class="btn-primary px-4 py-2 rounded-lg w-full">Login</button>
-      </div>
-      <p class="text-xs text-gray-500 mt-3">Pastikan akun admin telah dibuat di Firebase Authentication.</p>
+  <!-- LOGIN -->
+  <div id="login-section" class="bg-white shadow-xl rounded-2xl p-8 w-[90%] max-w-md text-center space-y-4">
+    <h1 class="text-2xl font-bold text-indigo-600">Login Admin</h1>
+    <input type="email" id="email" placeholder="Email" class="input-field" />
+    <input type="password" id="password" placeholder="Password" class="input-field" />
+    <button id="loginBtn" class="btn-primary w-full">Masuk</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="hidden w-[95%] max-w-3xl mx-auto p-6 bg-white shadow-2xl rounded-2xl space-y-5">
+    <div class="flex justify-between items-center">
+      <h2 class="text-2xl font-bold text-indigo-600">Dashboard Admin</h2>
+      <button id="logoutBtn" class="text-red-500 border border-red-500 px-3 py-1 rounded-md">Keluar</button>
     </div>
 
-    <!-- ADMIN PANEL -->
-    <div id="admin-panel" class="hidden space-y-6">
+    <div class="border-t pt-4">
+      <h3 class="font-semibold mb-2 text-gray-700">Tambah / Edit Soal</h3>
 
-      <!-- Form Tambah/Edit Soal -->
-      <div class="card">
-        <h3 class="text-lg font-medium text-indigo-700 mb-3">Tambah / Edit Soal</h3>
+      <div class="space-y-3">
+        <input type="hidden" id="qId">
+        <input type="text" id="qText" placeholder="Tulis pertanyaan di sini..." class="input-field">
 
-        <input id="q-id" type="hidden" />
-        <label class="block text-sm text-gray-600">Teks Soal</label>
-        <textarea id="q-text" class="input-field w-full mb-3" rows="3" placeholder="Masukkan teks soal"></textarea>
-
-        <div id="options-wrapper" class="grid grid-cols-1 gap-2 mb-3">
-          <!-- opsi akan di-generate -->
-        </div>
-
-        <div class="flex items-center gap-3 mb-3">
-          <button id="add-option" class="px-3 py-1 border rounded-md text-sm">Tambah Pilihan</button>
-          <label class="text-sm text-gray-600">Pilihan Benar:</label>
-          <select id="correct-index" class="input-field px-2 py-1">
-            <!-- options -->
-          </select>
-        </div>
+        <div id="options-wrapper" class="space-y-2"></div>
+        <button id="add-option" class="px-3 py-1 border rounded-md text-sm">+ Tambah Pilihan</button>
 
         <div class="flex gap-3">
-          <button id="btn-save" class="btn-primary px-4 py-2 rounded-lg">Simpan Soal</button>
-          <button id="btn-clear" class="px-4 py-2 border rounded-lg">Bersihkan</button>
+          <button id="btnSave" class="btn-primary flex-1">💾 Simpan Soal</button>
+          <button id="btnPreview" class="border rounded-md flex-1 text-sm py-2 hover:bg-gray-100">👁️ Preview</button>
         </div>
       </div>
+    </div>
 
-      <!-- Daftar Soal -->
-      <div class="card">
-        <h3 class="text-lg font-medium text-indigo-700 mb-3">Daftar Soal</h3>
-        <div id="questions-list" class="space-y-3">
-          <!-- list soal -->
-        </div>
-      </div>
+    <div class="border-t pt-4">
+      <h3 class="font-semibold mb-2 text-gray-700">Daftar Soal</h3>
+      <div id="questionList" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- PREVIEW MODAL -->
+  <div id="preview-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-2xl w-[90%] max-w-md space-y-4 text-center shadow-2xl">
+      <h2 id="preview-question" class="text-lg font-semibold text-indigo-700"></h2>
+      <div id="preview-options" class="space-y-2"></div>
+      <button id="closePreview" class="btn-primary w-full">Tutup Preview</button>
     </div>
   </div>
 
