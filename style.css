@@ -1,14 +1,24 @@
-body {
-  font-family: sans-serif;
-  max-width: 500px;
-  margin: 40px auto;
-  text-align: center;
+/* style.css - custom tambahan */
+.btn-primary {
+  background-color: #7c3aed;
+  color: white;
 }
-.hidden {
-  display: none;
+.btn-primary:hover { background-color: #6d28d9; }
+
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(16,24,40,0.06);
+  padding: 16px;
 }
-button {
-  padding: 8px 16px;
-  margin: 10px;
-  cursor: pointer;
+.input-field {
+  border: 1px solid #e6e6f6;
+  border-radius: 8px;
+  padding: 8px 10px;
+  outline: none;
 }
+.input-field:focus {
+  box-shadow: 0 0 0 4px rgba(124,58,237,0.08);
+  border-color: #7c3aed;
+}
+.hidden { display: none; }
