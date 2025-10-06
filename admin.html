@@ -114,7 +114,7 @@ const adminPanel = document.getElementById('adminPanel');
 const adminInfo = document.getElementById('adminInfo');
 const navBtns = document.querySelectorAll('.nav-btn');
 
-// ========== NAVIGATION ==========
+// NAVIGATION
 navBtns.forEach(btn=>{
   btn.onclick=()=>{
     navBtns.forEach(b=>b.classList.remove('active'));
@@ -127,7 +127,7 @@ navBtns.forEach(btn=>{
   };
 });
 
-// ========== LOGIN SYSTEM ==========
+// LOGIN SYSTEM
 onAuthStateChanged(auth,user=>{
   if(user && user.uid===ADMIN_UID){
     loginCard.classList.add('hidden');
@@ -143,7 +143,7 @@ onAuthStateChanged(auth,user=>{
 btnLogin.onclick=async()=>{try{await signInWithEmailAndPassword(auth, adminEmail.value, adminPass.value);}catch(e){alert('Login gagal: '+e.message);}}; 
 btnLogout.onclick=()=>signOut(auth);
 
-// ========== KELOLA SOAL ==========
+// KELOLA SOAL
 const qText=document.getElementById('qText');
 const optsWrap=document.getElementById('optsWrap');
 const btnSaveQ=document.getElementById('btnSaveQ');
@@ -194,7 +194,7 @@ btnSaveQ.onclick=async()=>{
 };
 btnClear.onclick=()=>{qText.value='';optsWrap.querySelectorAll('.opt').forEach(i=>i.value='');optsWrap.querySelectorAll('.chk-correct').forEach(c=>c.checked=false);btnSaveQ.textContent='Tambah Soal';delete btnSaveQ.dataset.editing;};
 
-// ========== PESERTA ==========
+// PESERTA
 const studentList=document.getElementById('studentList');
 const studentName=document.getElementById('studentName');
 const studentEmail=document.getElementById('studentEmail');
@@ -216,7 +216,7 @@ btnAddStudent.onclick=async()=>{
   studentName.value='';studentEmail.value='';loadStudents();
 };
 
-// ========== HASIL NILAI ==========
+// HASIL NILAI
 const hasilList=document.getElementById('hasilList');
 const btnExport=document.getElementById('btnExport');
 const btnExportExcel=document.getElementById('btnExportExcel');
@@ -240,7 +240,7 @@ async function getResultData(){
     const name=studentMap[email]||r.name||r.studentName||'';
     const skor=r.score??r.percent??'';
     const tanggal=formatDate(r.date||r.timestamp||r.createdAt);
-    data.push({Nama:name,Email:email,Skor:skor,Tanggal:tanggal});
+    data.push({id:d.id,Nama:name,Email:email,Skor:skor,Tanggal:tanggal});
   });
   return data;
 }
@@ -257,8 +257,36 @@ async function loadResults(){
         <td>${escapeHtml(r.Email)}</td>
         <td>${r.Skor}</td>
         <td>${r.Tanggal}</td>
-        <td>-</td>
+        <td>
+          <button class="btn btn-primary text-xs editResult" data-id="${r.id}">Edit</button>
+          <button class="btn btn-danger text-xs delResult" data-id="${r.id}">Hapus</button>
+        </td>
       </tr>`;
+  });
+
+  // Hapus nilai
+  hasilList.querySelectorAll('.delResult').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.id;
+    if(confirm('Hapus hasil ini?')){
+      for(const name of RESULT_COLLECTIONS){
+        try{await deleteDoc(doc(db,name,id));}catch{}
+      }
+      loadResults();
+    }
+  });
+
+  // Edit skor
+  hasilList.querySelectorAll('.editResult').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.id;
+    const newScore=prompt('Masukkan skor baru:');
+    if(newScore===null)return;
+    const num=parseFloat(newScore);
+    if(isNaN(num))return alert('Skor tidak valid!');
+    for(const name of RESULT_COLLECTIONS){
+      try{await updateDoc(doc(db,name,id),{score:num});}catch{}
+    }
+    alert('Skor diperbarui!');
+    loadResults();
   });
 }
 
@@ -286,7 +314,7 @@ btnExportExcel.onclick=async()=>{
 
 btnRefresh.onclick=loadResults;
 
-// ========== HELPERS ==========
+// HELPERS
 function escapeHtml(s=''){return s.replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));}
 function formatDate(v){
   if(!v)return'-';
