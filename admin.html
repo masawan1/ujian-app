@@ -138,7 +138,7 @@ onAuthStateChanged(auth,user=>{
     adminPanel.classList.add('hidden');
   }
 });
-btnLogin.onclick=async()=>{try{await signInWithEmailAndPassword(auth, adminEmail.value, adminPass.value);}catch(e){alert('Login gagal: '+e.message);}};
+btnLogin.onclick=async()=>{try{await signInWithEmailAndPassword(auth, adminEmail.value, adminPass.value);}catch(e){alert('Login gagal: '+e.message);}}; 
 btnLogout.onclick=()=>signOut(auth);
 
 // ========== KELOLA SOAL ==========
@@ -219,6 +219,7 @@ const hasilList=document.getElementById('hasilList');
 const btnExport=document.getElementById('btnExport');
 const btnRefresh=document.getElementById('btnRefreshResults');
 const RESULT_COLLECTIONS=['exam_results','results','hasil_ujian'];
+
 async function loadResults(){
   hasilList.innerHTML='<tr><td colspan="4">Memuat...</td></tr>';
   const studentMap={};
@@ -239,54 +240,9 @@ async function loadResults(){
     const tanggal=formatDate(r.date||r.timestamp||r.createdAt);
     hasilList.innerHTML+=`<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(email)}</td><td>${skor}</td><td>${tanggal}</td></tr>`;
   });
-
-  // === Tambahan tombol Edit & Hapus ===
-  const hasilTable = document.querySelector('#hasilPanel table thead tr');
-  if (hasilTable && hasilTable.children.length === 4) {
-    const th = document.createElement('th'); th.textContent = 'Aksi'; hasilTable.appendChild(th);
-  }
-  const rows = document.querySelectorAll('#hasilList tr');
-  rows.forEach(tr=>{
-    const email=tr.children[1]?.textContent?.trim();
-    const scoreCell=tr.children[2];
-    if(!email) return;
-    const td=document.createElement('td');
-    td.innerHTML=`<button class="btn btn-primary text-xs mr-1">Edit</button><button class="btn btn-danger text-xs">Hapus</button>`;
-    tr.appendChild(td);
-    td.querySelector('.btn-primary').onclick=async()=>{
-      const newScore=prompt('Masukkan nilai baru untuk '+email+':',scoreCell.textContent);
-      if(newScore===null)return;
-      const num=parseFloat(newScore);
-      if(isNaN(num))return alert('Nilai tidak valid!');
-      for(const name of RESULT_COLLECTIONS){
-        const snap=await getDocs(collection(db,name));
-        for(const docSnap of snap.docs){
-          const data=docSnap.data();
-          if(data.email===email||data.studentEmail===email){
-            await updateDoc(doc(db,name,docSnap.id),{score:num});
-            alert('Nilai diperbarui.'); loadResults(); return;
-          }
-        }
-      }
-      alert('Data tidak ditemukan.');
-    };
-    td.querySelector('.btn-danger').onclick=async()=>{
-      if(!confirm('Yakin ingin menghapus hasil untuk '+email+'?'))return;
-      for(const name of RESULT_COLLECTIONS){
-        const snap=await getDocs(collection(db,name));
-        for(const docSnap of snap.docs){
-          const data=docSnap.data();
-          if(data.email===email||data.studentEmail===email){
-            await deleteDoc(doc(db,name,docSnap.id));
-            alert('Data dihapus.'); loadResults(); return;
-          }
-        }
-      }
-      alert('Data tidak ditemukan.');
-    };
-  });
 }
 
+// Export ke CSV
 btnExport.onclick=async()=>{
   const studentMap={};
   const studSnap=await getDocs(collection(db,'students'));
@@ -311,9 +267,31 @@ btnExport.onclick=async()=>{
 };
 btnRefresh.onclick=loadResults;
 
-// helpers
+// ========== HELPERS ==========
 function escapeHtml(s=''){return s.replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));}
-function formatDate(v){try{return v?.toDate?v.toDate().toLocaleString():new Date(v.seconds*1000).toLocaleString();}catch{return '-';}}
+
+// ✅ Fungsi formatDate() baru (perbaikan lengkap)
+function formatDate(v) {
+  if (!v) return '-';
+  try {
+    if (v.toDate) {
+      return v.toDate().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+    if (typeof v === 'object' && 'seconds' in v) {
+      return new Date(v.seconds * 1000).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+    if (typeof v === 'string') {
+      const d = new Date(v);
+      if (!isNaN(d)) return d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+    if (typeof v === 'number') {
+      return new Date(v).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+  } catch (e) {
+    console.warn('formatDate error:', e);
+  }
+  return '-';
+}
 </script>
 </body>
 </html>
