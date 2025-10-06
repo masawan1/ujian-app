@@ -1,117 +1,102 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin Dashboard - Ujian Online</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <style>
-    .card { background: white; padding: 1.25rem; border-radius: 0.75rem; box-shadow: 0 6px 18px rgba(16,24,40,0.06); }
-    .btn { padding: .5rem .75rem; border-radius: .5rem; font-weight: 600; }
-    .btn-primary { background:#4f46e5; color:white; }
-    .btn-danger { background:#ef4444; color:white; }
-    .btn-secondary { background:#e5e7eb; color:#374151; }
-    .input { width:100%; padding:.5rem; border-radius:.5rem; border:1px solid #e5e7eb; }
-    table th, table td { padding:.5rem; border-bottom:1px solid #eef2ff; text-align:left; }
-    .nav-btn.active { background:#4f46e5; color:white; }
-    .opt-row { display:flex; align-items:center; gap:.5rem; }
-    #editModal { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Admin Dashboard - Ujian Online</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<style>
+  .card { background: white; padding: 1.25rem; border-radius: 0.75rem; box-shadow: 0 6px 18px rgba(16,24,40,0.06); }
+  .btn { padding: .5rem .75rem; border-radius: .5rem; font-weight: 600; }
+  .btn-primary { background:#4f46e5; color:white; }
+  .btn-danger { background:#ef4444; color:white; }
+  .input { width:100%; padding:.5rem; border-radius:.5rem; border:1px solid #e5e7eb; }
+  table th, table td { padding:.5rem; border-bottom:1px solid #eef2ff; text-align:left; }
+  .nav-btn.active { background:#4f46e5; color:white; }
+  .opt-row { display:flex; align-items:center; gap:.5rem; }
+</style>
 </head>
 <body class="bg-indigo-50 min-h-screen p-6 font-sans">
-
 <div class="max-w-5xl mx-auto">
-  <h1 class="text-2xl font-bold text-indigo-700 mb-6">Dashboard Admin — Ujian Online</h1>
+<h1 class="text-2xl font-bold text-indigo-700 mb-6">Dashboard Admin — Ujian Online</h1>
 
-  <!-- LOGIN -->
-  <div id="loginCard" class="card max-w-md mx-auto mb-6">
-    <h2 class="font-semibold text-lg mb-3">Login Admin</h2>
-    <input id="adminEmail" class="input mb-2" placeholder="Email admin" type="email"/>
-    <input id="adminPass" class="input mb-3" placeholder="Password" type="password"/>
-    <div class="flex gap-3">
-      <button id="btnLogin" class="btn btn-primary flex-1">Masuk</button>
-      <button id="btnLogout" class="btn hidden">Keluar</button>
-    </div>
+<!-- LOGIN -->
+<div id="loginCard" class="card max-w-md mx-auto mb-6">
+  <h2 class="font-semibold text-lg mb-3">Login Admin</h2>
+  <input id="adminEmail" class="input mb-2" placeholder="Email admin" type="email"/>
+  <input id="adminPass" class="input mb-3" placeholder="Password" type="password"/>
+  <div class="flex gap-3">
+    <button id="btnLogin" class="btn btn-primary flex-1">Masuk</button>
+    <button id="btnLogout" class="btn hidden">Keluar</button>
   </div>
-
-  <!-- DASHBOARD -->
-  <div id="adminPanel" class="card hidden">
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex gap-2">
-        <button class="btn nav-btn active" data-target="soalPanel">Kelola Soal</button>
-        <button class="btn nav-btn" data-target="pesertaPanel">Peserta Didik</button>
-        <button class="btn nav-btn" data-target="hasilPanel">Hasil Nilai</button>
-      </div>
-      <div id="adminInfo" class="text-sm text-gray-600"></div>
-    </div>
-
-    <!-- PANEL SOAL -->
-    <div id="soalPanel">
-      <h2 class="text-lg font-semibold text-indigo-700 mb-3">Kelola Soal</h2>
-      <div class="mb-4">
-        <input id="qText" class="input mb-2" placeholder="Tulis pertanyaan..." />
-        <div id="optsWrap" class="space-y-2 mb-2">
-          <div class="opt-row"><input class="input opt flex-1" placeholder="Opsi A" /><input type="radio" name="correctOpt" class="chk-correct"></div>
-          <div class="opt-row"><input class="input opt flex-1" placeholder="Opsi B" /><input type="radio" name="correctOpt" class="chk-correct"></div>
-          <div class="opt-row"><input class="input opt flex-1" placeholder="Opsi C" /><input type="radio" name="correctOpt" class="chk-correct"></div>
-          <div class="opt-row"><input class="input opt flex-1" placeholder="Opsi D" /><input type="radio" name="correctOpt" class="chk-correct"></div>
-        </div>
-        <div class="flex gap-3">
-          <button id="btnSaveQ" class="btn btn-primary">Tambah Soal</button>
-          <button id="btnClear" class="btn">Bersihkan</button>
-        </div>
-      </div>
-
-      <div>
-        <h3 class="font-medium mb-2">Daftar Soal</h3>
-        <table class="w-full bg-white">
-          <thead><tr><th>Pertanyaan</th><th>Aksi</th></tr></thead>
-          <tbody id="qList"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- PANEL PESERTA -->
-    <div id="pesertaPanel" class="hidden">
-      <h2 class="text-lg font-semibold text-indigo-700 mb-3">Kelola Peserta Didik</h2>
-      <div class="mb-4">
-        <input id="studentName" class="input mb-2" placeholder="Nama siswa" />
-        <input id="studentEmail" class="input mb-2" placeholder="Email siswa" />
-        <div class="flex gap-3">
-          <button id="btnAddStudent" class="btn btn-primary">Tambah Peserta</button>
-        </div>
-      </div>
-      <table class="w-full bg-white">
-        <thead><tr><th>Nama</th><th>Email</th><th>Aksi</th></tr></thead>
-        <tbody id="studentList"></tbody>
-      </table>
-    </div>
-
-    <!-- PANEL HASIL -->
-    <div id="hasilPanel" class="hidden">
-      <h2 class="text-lg font-semibold text-indigo-700 mb-3">Hasil Nilai Siswa</h2>
-      <div class="flex gap-2 mb-3">
-        <button id="btnExport" class="btn btn-primary">Export ke CSV</button>
-        <button id="btnRefreshResults" class="btn">Refresh</button>
-      </div>
-      <table class="w-full bg-white">
-        <thead><tr><th>Nama</th><th>Email</th><th>Skor</th><th>Tanggal</th><th>Aksi</th></tr></thead>
-        <tbody id="hasilList"></tbody>
-      </table>
-    </div>
-  </div>
+  <p id="loginMsg" class="text-sm text-red-500 mt-2 hidden"></p>
 </div>
 
-<!-- MODAL EDIT NILAI -->
-<div id="editModal" class="flex">
-  <div class="bg-white rounded-xl p-6 w-80">
-    <h3 class="text-lg font-semibold mb-3 text-indigo-700">Edit Nilai</h3>
-    <input id="editScoreInput" type="number" class="input mb-3" placeholder="Masukkan nilai baru..." />
-    <div class="flex justify-end gap-2">
-      <button id="btnCancelEdit" class="btn btn-secondary">Batal</button>
-      <button id="btnSaveEdit" class="btn btn-primary">Simpan</button>
+<!-- DASHBOARD -->
+<div id="adminPanel" class="card hidden">
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex gap-2">
+      <button class="btn nav-btn active" data-target="soalPanel">Kelola Soal</button>
+      <button class="btn nav-btn" data-target="pesertaPanel">Peserta Didik</button>
+      <button class="btn nav-btn" data-target="hasilPanel">Hasil Nilai</button>
+    </div>
+    <div id="adminInfo" class="text-sm text-gray-600"></div>
+  </div>
+
+  <!-- PANEL SOAL -->
+  <div id="soalPanel">
+    <h2 class="text-lg font-semibold text-indigo-700 mb-3">Kelola Soal</h2>
+    <div class="mb-4">
+      <input id="qText" class="input mb-2" placeholder="Tulis pertanyaan..." />
+      <div id="optsWrap" class="space-y-2 mb-2">
+        <div class="opt-row"><input class="input opt flex-1" placeholder="Opsi A" /><input type="radio" name="correctOpt" class="chk-correct"></div>
+        <div class="opt-row"><input class="input opt flex-1" placeholder="Opsi B" /><input type="radio" name="correctOpt" class="chk-correct"></div>
+        <div class="opt-row"><input class="input opt flex-1" placeholder="Opsi C" /><input type="radio" name="correctOpt" class="chk-correct"></div>
+        <div class="opt-row"><input class="input opt flex-1" placeholder="Opsi D" /><input type="radio" name="correctOpt" class="chk-correct"></div>
+      </div>
+      <div class="flex gap-3">
+        <button id="btnSaveQ" class="btn btn-primary">Tambah Soal</button>
+        <button id="btnClear" class="btn">Bersihkan</button>
+      </div>
+    </div>
+    <div>
+      <h3 class="font-medium mb-2">Daftar Soal</h3>
+      <table class="w-full bg-white">
+        <thead><tr><th>Pertanyaan</th><th>Aksi</th></tr></thead>
+        <tbody id="qList"></tbody>
+      </table>
     </div>
   </div>
+
+  <!-- PANEL PESERTA -->
+  <div id="pesertaPanel" class="hidden">
+    <h2 class="text-lg font-semibold text-indigo-700 mb-3">Kelola Peserta Didik</h2>
+    <div class="mb-4">
+      <input id="studentName" class="input mb-2" placeholder="Nama siswa" />
+      <input id="studentEmail" class="input mb-2" placeholder="Email siswa" />
+      <div class="flex gap-3">
+        <button id="btnAddStudent" class="btn btn-primary">Tambah Peserta</button>
+      </div>
+    </div>
+    <table class="w-full bg-white">
+      <thead><tr><th>Nama</th><th>Email</th><th>Aksi</th></tr></thead>
+      <tbody id="studentList"></tbody>
+    </table>
+  </div>
+
+  <!-- PANEL HASIL -->
+  <div id="hasilPanel" class="hidden">
+    <h2 class="text-lg font-semibold text-indigo-700 mb-3">Hasil Nilai Siswa</h2>
+    <div class="flex gap-2 mb-3">
+      <button id="btnExport" class="btn btn-primary">Export ke CSV</button>
+      <button id="btnRefreshResults" class="btn">Refresh</button>
+    </div>
+    <table class="w-full bg-white">
+      <thead><tr><th>Nama</th><th>Email</th><th>Skor</th><th>Tanggal</th></tr></thead>
+      <tbody id="hasilList"></tbody>
+    </table>
+  </div>
+</div>
 </div>
 
 <script type="module">
@@ -120,15 +105,14 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https:/
 import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 const ADMIN_UID = "kGAaNL6vPcWKiwzQ3nc71jhHFMx2";
+const loginCard = document.getElementById('loginCard');
+const btnLogin = document.getElementById('btnLogin');
+const btnLogout = document.getElementById('btnLogout');
+const adminPanel = document.getElementById('adminPanel');
+const adminInfo = document.getElementById('adminInfo');
+const navBtns = document.querySelectorAll('.nav-btn');
 
-// ===== Login & Navigasi =====
-const loginCard=document.getElementById('loginCard');
-const btnLogin=document.getElementById('btnLogin');
-const btnLogout=document.getElementById('btnLogout');
-const adminPanel=document.getElementById('adminPanel');
-const adminInfo=document.getElementById('adminInfo');
-const navBtns=document.querySelectorAll('.nav-btn');
-
+// NAVIGATION
 navBtns.forEach(btn=>{
   btn.onclick=()=>{
     navBtns.forEach(b=>b.classList.remove('active'));
@@ -141,6 +125,7 @@ navBtns.forEach(btn=>{
   };
 });
 
+// LOGIN SYSTEM
 onAuthStateChanged(auth,user=>{
   if(user && user.uid===ADMIN_UID){
     loginCard.classList.add('hidden');
@@ -153,23 +138,15 @@ onAuthStateChanged(auth,user=>{
     adminPanel.classList.add('hidden');
   }
 });
-
-btnLogin.onclick=async()=>{
-  try{
-    await signInWithEmailAndPassword(auth,
-      document.getElementById('adminEmail').value,
-      document.getElementById('adminPass').value);
-  }catch(e){alert('Login gagal: '+e.message);}
-};
+btnLogin.onclick=async()=>{try{await signInWithEmailAndPassword(auth, adminEmail.value, adminPass.value);}catch(e){alert('Login gagal: '+e.message);}};
 btnLogout.onclick=()=>signOut(auth);
 
-// ====== Kelola Soal ======
+// ========== KELOLA SOAL ==========
 const qText=document.getElementById('qText');
 const optsWrap=document.getElementById('optsWrap');
 const btnSaveQ=document.getElementById('btnSaveQ');
 const btnClear=document.getElementById('btnClear');
 const qList=document.getElementById('qList');
-
 async function loadQuestions(){
   qList.innerHTML='<tr><td colspan="2">Memuat...</td></tr>';
   const snap=await getDocs(collection(db,'questions'));
@@ -178,18 +155,165 @@ async function loadQuestions(){
     const q=d.data();
     const tr=document.createElement('tr');
     tr.innerHTML=`<td>${escapeHtml(q.text)}</td>
-      <td><button data-id="${d.id}" class="btn btn-primary text-xs">Edit</button>
-      <button data-id="${d.id}" class="btn btn-danger text-xs">Hapus</button></td>`;
+    <td><button data-id="${d.id}" class="btn btn-primary text-xs">Edit</button>
+    <button data-id="${d.id}" class="btn btn-danger text-xs">Hapus</button></td>`;
     qList.appendChild(tr);
   });
   qList.querySelectorAll('.btn-danger').forEach(b=>b.onclick=async()=>{await deleteDoc(doc(db,'questions',b.dataset.id));loadQuestions();});
   qList.querySelectorAll('.btn-primary').forEach(b=>b.onclick=()=>editQuestion(b.dataset.id));
 }
-
 async function editQuestion(id){
   const snap=await getDocs(collection(db,'questions'));
   const f=snap.docs.find(s=>s.id===id);
   if(!f) return alert('Soal tidak ditemukan');
   const data=f.data();
   qText.value=data.text||'';
-  const opts=optsWrap
+  const opts=optsWrap.querySelectorAll('.opt');
+  const chks=optsWrap.querySelectorAll('.chk-correct');
+  (data.options||[]).forEach((v,i)=>{if(opts[i])opts[i].value=v;});
+  chks.forEach((c,i)=>{c.checked=(i===data.correctIndex);});
+  btnSaveQ.dataset.editing=id;
+  btnSaveQ.textContent='Perbarui Soal';
+}
+btnSaveQ.onclick=async()=>{
+  const text=qText.value.trim();
+  const opts=[...optsWrap.querySelectorAll('.opt')].map(o=>o.value.trim());
+  const correctIndex=[...optsWrap.querySelectorAll('.chk-correct')].findIndex(c=>c.checked);
+  if(!text||opts.some(o=>!o)||correctIndex===-1) return alert('Isi soal, opsi, dan tandai jawaban benar!');
+  const data={text,options:opts,correctIndex};
+  const id=btnSaveQ.dataset.editing;
+  if(id) await updateDoc(doc(db,'questions',id),data);
+  else await addDoc(collection(db,'questions'),data);
+  alert('Soal disimpan.');
+  btnSaveQ.textContent='Tambah Soal';
+  delete btnSaveQ.dataset.editing;
+  qText.value=''; optsWrap.querySelectorAll('.opt').forEach(i=>i.value=''); optsWrap.querySelectorAll('.chk-correct').forEach(c=>c.checked=false);
+  loadQuestions();
+};
+btnClear.onclick=()=>{qText.value='';optsWrap.querySelectorAll('.opt').forEach(i=>i.value='');optsWrap.querySelectorAll('.chk-correct').forEach(c=>c.checked=false);btnSaveQ.textContent='Tambah Soal';delete btnSaveQ.dataset.editing;};
+
+// ========== PESERTA ==========
+const studentList=document.getElementById('studentList');
+const studentName=document.getElementById('studentName');
+const studentEmail=document.getElementById('studentEmail');
+const btnAddStudent=document.getElementById('btnAddStudent');
+async function loadStudents(){
+  studentList.innerHTML='<tr><td colspan="3">Memuat...</td></tr>';
+  const snap=await getDocs(collection(db,'students'));
+  studentList.innerHTML='';
+  snap.forEach(d=>{
+    const s=d.data();
+    studentList.innerHTML+=`<tr><td>${escapeHtml(s.name||'-')}</td><td>${escapeHtml(s.email||'-')}</td>
+    <td><button class="btn btn-danger text-xs" data-id="${d.id}">Hapus</button></td></tr>`;
+  });
+  studentList.querySelectorAll('button').forEach(b=>b.onclick=async()=>{await deleteDoc(doc(db,'students',b.dataset.id));loadStudents();});
+}
+btnAddStudent.onclick=async()=>{
+  if(!studentName.value.trim()||!studentEmail.value.trim())return alert('Isi nama dan email!');
+  await addDoc(collection(db,'students'),{name:studentName.value.trim(),email:studentEmail.value.trim()});
+  studentName.value='';studentEmail.value='';loadStudents();
+};
+
+// ========== HASIL NILAI ==========
+const hasilList=document.getElementById('hasilList');
+const btnExport=document.getElementById('btnExport');
+const btnRefresh=document.getElementById('btnRefreshResults');
+const RESULT_COLLECTIONS=['exam_results','results','hasil_ujian'];
+async function loadResults(){
+  hasilList.innerHTML='<tr><td colspan="4">Memuat...</td></tr>';
+  const studentMap={};
+  const studSnap=await getDocs(collection(db,'students'));
+  studSnap.forEach(s=>studentMap[s.data().email]=s.data().name);
+  let found=null,snap=null;
+  for(const name of RESULT_COLLECTIONS){
+    const trySnap=await getDocs(collection(db,name));
+    if(!trySnap.empty){found=name;snap=trySnap;break;}
+  }
+  if(!snap||snap.empty){hasilList.innerHTML='<tr><td colspan="4">Belum ada hasil.</td></tr>';return;}
+  hasilList.innerHTML='';
+  snap.forEach(d=>{
+    const r=d.data();
+    const email=r.email||r.studentEmail||'-';
+    const name=studentMap[email]||r.name||r.studentName||'-';
+    const skor=r.score??r.percent??'-';
+    const tanggal=formatDate(r.date||r.timestamp||r.createdAt);
+    hasilList.innerHTML+=`<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(email)}</td><td>${skor}</td><td>${tanggal}</td></tr>`;
+  });
+
+  // === Tambahan tombol Edit & Hapus ===
+  const hasilTable = document.querySelector('#hasilPanel table thead tr');
+  if (hasilTable && hasilTable.children.length === 4) {
+    const th = document.createElement('th'); th.textContent = 'Aksi'; hasilTable.appendChild(th);
+  }
+  const rows = document.querySelectorAll('#hasilList tr');
+  rows.forEach(tr=>{
+    const email=tr.children[1]?.textContent?.trim();
+    const scoreCell=tr.children[2];
+    if(!email) return;
+    const td=document.createElement('td');
+    td.innerHTML=`<button class="btn btn-primary text-xs mr-1">Edit</button><button class="btn btn-danger text-xs">Hapus</button>`;
+    tr.appendChild(td);
+    td.querySelector('.btn-primary').onclick=async()=>{
+      const newScore=prompt('Masukkan nilai baru untuk '+email+':',scoreCell.textContent);
+      if(newScore===null)return;
+      const num=parseFloat(newScore);
+      if(isNaN(num))return alert('Nilai tidak valid!');
+      for(const name of RESULT_COLLECTIONS){
+        const snap=await getDocs(collection(db,name));
+        for(const docSnap of snap.docs){
+          const data=docSnap.data();
+          if(data.email===email||data.studentEmail===email){
+            await updateDoc(doc(db,name,docSnap.id),{score:num});
+            alert('Nilai diperbarui.'); loadResults(); return;
+          }
+        }
+      }
+      alert('Data tidak ditemukan.');
+    };
+    td.querySelector('.btn-danger').onclick=async()=>{
+      if(!confirm('Yakin ingin menghapus hasil untuk '+email+'?'))return;
+      for(const name of RESULT_COLLECTIONS){
+        const snap=await getDocs(collection(db,name));
+        for(const docSnap of snap.docs){
+          const data=docSnap.data();
+          if(data.email===email||data.studentEmail===email){
+            await deleteDoc(doc(db,name,docSnap.id));
+            alert('Data dihapus.'); loadResults(); return;
+          }
+        }
+      }
+      alert('Data tidak ditemukan.');
+    };
+  });
+}
+
+btnExport.onclick=async()=>{
+  const studentMap={};
+  const studSnap=await getDocs(collection(db,'students'));
+  studSnap.forEach(s=>studentMap[s.data().email]=s.data().name);
+  let found=null,snap=null;
+  for(const name of RESULT_COLLECTIONS){
+    const trySnap=await getDocs(collection(db,name));
+    if(!trySnap.empty){found=name;snap=trySnap;break;}
+  }
+  if(!snap||snap.empty)return alert('Tidak ada data.');
+  let csv="Nama,Email,Skor,Tanggal\n";
+  snap.forEach(d=>{
+    const r=d.data();
+    const email=r.email||r.studentEmail||'';
+    const name=studentMap[email]||r.name||r.studentName||'';
+    const skor=r.score??r.percent??'';
+    const tanggal=formatDate(r.date||r.timestamp||r.createdAt);
+    csv+=`"${name}","${email}","${skor}","${tanggal}"\n`;
+  });
+  const blob=new Blob([csv],{type:"text/csv"});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='hasil_ujian.csv'; a.click();
+};
+btnRefresh.onclick=loadResults;
+
+// helpers
+function escapeHtml(s=''){return s.replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));}
+function formatDate(v){try{return v?.toDate?v.toDate().toLocaleString():new Date(v.seconds*1000).toLocaleString();}catch{return '-';}}
+</script>
+</body>
+</html>
