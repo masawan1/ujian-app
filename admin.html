@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Admin Dashboard - Ujian Online</title>
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   .card { background: white; padding: 1.25rem; border-radius: 0.75rem; box-shadow: 0 6px 18px rgba(16,24,40,0.06); }
   .btn { padding: .5rem .75rem; border-radius: .5rem; font-weight: 600; }
@@ -88,7 +89,7 @@
   <div id="hasilPanel" class="hidden">
     <h2 class="text-lg font-semibold text-indigo-700 mb-3">Hasil Nilai Siswa</h2>
     <div class="flex gap-2 mb-3">
-      <button id="btnExportCSV" class="btn btn-primary">Export ke CSV</button>
+      <button id="btnExport" class="btn btn-primary">Export ke CSV</button>
       <button id="btnExportExcel" class="btn btn-primary">Export ke Excel</button>
       <button id="btnRefreshResults" class="btn">Refresh</button>
     </div>
@@ -99,9 +100,6 @@
   </div>
 </div>
 </div>
-
-<!-- Tambah pustaka SheetJS -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script type="module">
 import { app, db, auth } from './firebaseConfig.js';
@@ -116,7 +114,7 @@ const adminPanel = document.getElementById('adminPanel');
 const adminInfo = document.getElementById('adminInfo');
 const navBtns = document.querySelectorAll('.nav-btn');
 
-// NAVIGATION
+// ========== NAVIGATION ==========
 navBtns.forEach(btn=>{
   btn.onclick=()=>{
     navBtns.forEach(b=>b.classList.remove('active'));
@@ -129,7 +127,7 @@ navBtns.forEach(btn=>{
   };
 });
 
-// LOGIN SYSTEM
+// ========== LOGIN SYSTEM ==========
 onAuthStateChanged(auth,user=>{
   if(user && user.uid===ADMIN_UID){
     loginCard.classList.add('hidden');
@@ -220,13 +218,12 @@ btnAddStudent.onclick=async()=>{
 
 // ========== HASIL NILAI ==========
 const hasilList=document.getElementById('hasilList');
-const btnExportCSV=document.getElementById('btnExportCSV');
+const btnExport=document.getElementById('btnExport');
 const btnExportExcel=document.getElementById('btnExportExcel');
 const btnRefresh=document.getElementById('btnRefreshResults');
 const RESULT_COLLECTIONS=['exam_results','results','hasil_ujian'];
 
-async function loadResults(){
-  hasilList.innerHTML='<tr><td colspan="5">Memuat...</td></tr>';
+async function getResultData(){
   const studentMap={};
   const studSnap=await getDocs(collection(db,'students'));
   studSnap.forEach(s=>studentMap[s.data().email]=s.data().name);
@@ -235,68 +232,7 @@ async function loadResults(){
     const trySnap=await getDocs(collection(db,name));
     if(!trySnap.empty){found=name;snap=trySnap;break;}
   }
-  if(!snap||snap.empty){hasilList.innerHTML='<tr><td colspan="5">Belum ada hasil.</td></tr>';return;}
-  hasilList.innerHTML='';
-  snap.forEach(d=>{
-    const r=d.data();
-    const email=r.email||r.studentEmail||'-';
-    const name=studentMap[email]||r.name||r.studentName||'-';
-    const skor=r.score??r.percent??'-';
-    const tanggal=formatDate(r.date||r.timestamp||r.createdAt);
-    hasilList.innerHTML+=`
-      <tr>
-        <td>${escapeHtml(name)}</td>
-        <td>${escapeHtml(email)}</td>
-        <td>${skor}</td>
-        <td>${tanggal}</td>
-        <td>
-          <button class="btn btn-primary text-xs" data-id="${d.id}" data-coll="${found}">Edit</button>
-          <button class="btn btn-danger text-xs" data-id="${d.id}" data-coll="${found}">Hapus</button>
-        </td>
-      </tr>`;
-  });
-
-  hasilList.querySelectorAll('.btn-danger').forEach(b=>b.onclick=async()=>{if(confirm('Hapus data nilai ini?')){await deleteDoc(doc(db,b.dataset.coll,b.dataset.id));alert('Data dihapus.');loadResults();}});
-  hasilList.querySelectorAll('.btn-primary').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;const coll=b.dataset.coll;const skorBaru=prompt('Masukkan nilai baru:');if(skorBaru===null)return;const nilai=parseFloat(skorBaru);if(isNaN(nilai))return alert('Nilai tidak valid.');await updateDoc(doc(db,coll,id),{score:nilai});alert('Nilai diperbarui.');loadResults();});
-}
-
-// Export ke CSV
-btnExportCSV.onclick=async()=>{
-  const studentMap={};
-  const studSnap=await getDocs(collection(db,'students'));
-  studSnap.forEach(s=>studentMap[s.data().email]=s.data().name);
-  let found=null,snap=null;
-  for(const name of RESULT_COLLECTIONS){
-    const trySnap=await getDocs(collection(db,name));
-    if(!trySnap.empty){found=name;snap=trySnap;break;}
-  }
-  if(!snap||snap.empty)return alert('Tidak ada data.');
-  let csv="Nama,Email,Skor,Tanggal\n";
-  snap.forEach(d=>{
-    const r=d.data();
-    const email=r.email||r.studentEmail||'';
-    const name=studentMap[email]||r.name||r.studentName||'';
-    const skor=r.score??r.percent??'';
-    const tanggal=formatDate(r.date||r.timestamp||r.createdAt);
-    csv+=`"${name}","${email}","${skor}","${tanggal}"\n`;
-  });
-  const blob=new Blob([csv],{type:"text/csv"});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='hasil_ujian.csv'; a.click();
-};
-
-// Export ke Excel
-btnExportExcel.onclick=async()=>{
-  const studentMap={};
-  const studSnap=await getDocs(collection(db,'students'));
-  studSnap.forEach(s=>studentMap[s.data().email]=s.data().name);
-
-  let found=null,snap=null;
-  for(const name of RESULT_COLLECTIONS){
-    const trySnap=await getDocs(collection(db,name));
-    if(!trySnap.empty){found=name;snap=trySnap;break;}
-  }
-  if(!snap||snap.empty)return alert('Tidak ada data.');
-
+  if(!snap)return [];
   const data=[];
   snap.forEach(d=>{
     const r=d.data();
@@ -306,14 +242,62 @@ btnExportExcel.onclick=async()=>{
     const tanggal=formatDate(r.date||r.timestamp||r.createdAt);
     data.push({Nama:name,Email:email,Skor:skor,Tanggal:tanggal});
   });
+  return data;
+}
 
+async function loadResults(){
+  hasilList.innerHTML='<tr><td colspan="5">Memuat...</td></tr>';
+  const data=await getResultData();
+  if(data.length===0){hasilList.innerHTML='<tr><td colspan="5">Belum ada hasil.</td></tr>';return;}
+  hasilList.innerHTML='';
+  data.forEach(r=>{
+    hasilList.innerHTML+=`
+      <tr>
+        <td>${escapeHtml(r.Nama)}</td>
+        <td>${escapeHtml(r.Email)}</td>
+        <td>${r.Skor}</td>
+        <td>${r.Tanggal}</td>
+        <td>-</td>
+      </tr>`;
+  });
+}
+
+// Export CSV
+btnExport.onclick=async()=>{
+  const data=await getResultData();
+  if(data.length===0)return alert('Tidak ada data.');
+  let csv="Nama,Email,Skor,Tanggal\n";
+  data.forEach(r=>{
+    csv+=`"${r.Nama}","${r.Email}","${r.Skor}","${r.Tanggal}"\n`;
+  });
+  const blob=new Blob([csv],{type:"text/csv"});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='hasil_ujian.csv'; a.click();
+};
+
+// Export Excel
+btnExportExcel.onclick=async()=>{
+  const data=await getResultData();
+  if(data.length===0)return alert('Tidak ada data.');
   const ws=XLSX.utils.json_to_sheet(data);
   const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Hasil Ujian');
-  XLSX.writeFile(wb,'hasil_ujian.xlsx');
+  XLSX.utils.book_append_sheet(wb,ws,"Hasil Ujian");
+  XLSX.writeFile(wb,"hasil_ujian.xlsx");
 };
 
 btnRefresh.onclick=loadResults;
 
 // ========== HELPERS ==========
-function escapeHtml(s=''){return s.replace(/[&<>]/g,m=>({"&
+function escapeHtml(s=''){return s.replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));}
+function formatDate(v){
+  if(!v)return'-';
+  try{
+    if(v.toDate)return v.toDate().toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'});
+    if(typeof v==='object'&&'seconds'in v)return new Date(v.seconds*1000).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'});
+    if(typeof v==='string'){const d=new Date(v);if(!isNaN(d))return d.toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'});}
+    if(typeof v==='number')return new Date(v).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'});
+  }catch(e){console.warn('formatDate error:',e);}
+  return'-';
+}
+</script>
+</body>
+</html>
